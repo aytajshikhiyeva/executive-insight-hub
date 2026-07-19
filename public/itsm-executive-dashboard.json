@@ -1,0 +1,433 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "tags": ["deploy", "change"],
+        "type": "tags"
+      },
+      {
+        "name": "Major Incidents",
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "iconColor": "red",
+        "tags": ["P1", "major-incident"],
+        "type": "tags"
+      }
+    ]
+  },
+  "description": "ITSM Executive Dashboard for Enterprise Banking. ITIL v4 KPIs across Incident, Change, CMDB/Asset, Risk and IT Performance. Data sources: Jira (incidents/changes) + CMDB.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "uid": "itsm-exec-banking",
+  "title": "ITSM Executive Dashboard",
+  "tags": ["itsm", "itil", "banking", "executive", "jira", "cmdb"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "weekStart": "",
+  "refresh": "5m",
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["30s", "1m", "5m", "15m", "30m", "1h", "6h", "12h", "1d"]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Data source",
+        "current": { "text": "default", "value": "default" },
+        "hide": 0
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Business Service",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(itsm_incident_open{env=\"$env\"}, service)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "priority",
+        "type": "custom",
+        "label": "Priority",
+        "query": "P1,P2,P3,P4",
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "env",
+        "type": "custom",
+        "label": "Environment",
+        "query": "prod,uat,dr,dev",
+        "current": { "text": "prod", "value": "prod" }
+      },
+      {
+        "name": "assignment_group",
+        "type": "query",
+        "label": "Assignment Group",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(itsm_incident_open, assignment_group)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "change_type",
+        "type": "custom",
+        "label": "Change Type",
+        "query": "standard,normal,emergency",
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "links": [
+    { "title": "Jira - Incidents", "url": "https://jira.example.com/issues/?jql=project=INC", "type": "link", "icon": "external link", "targetBlank": true },
+    { "title": "CMDB", "url": "https://cmdb.example.com", "type": "link", "icon": "external link", "targetBlank": true },
+    { "title": "CAB Calendar", "url": "https://jira.example.com/servicedesk/change-calendar", "type": "link", "icon": "external link", "targetBlank": true }
+  ],
+  "panels": [
+    {
+      "id": 1000, "type": "row", "title": "1. ITSM Overview - Executive Summary",
+      "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":0}, "panels": []
+    },
+    {
+      "id": 1, "type": "stat", "title": "Total Incidents (30d)",
+      "gridPos": {"h":4,"w":4,"x":0,"y":1},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_incident_created_total{env=\"$env\",service=~\"$service\"}[30d]))","refId":"A"}],
+      "options": {"colorMode":"background","graphMode":"area","reduceOptions":{"calcs":["lastNotNull"]},"textMode":"auto"},
+      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"blue","value":null}]}}}
+    },
+    {
+      "id": 2, "type": "stat", "title": "Open Incidents",
+      "gridPos": {"h":4,"w":4,"x":4,"y":1},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(itsm_incident_open{env=\"$env\",service=~\"$service\"})","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":250},{"color":"red","value":400}]}}},
+      "options": {"colorMode":"value","graphMode":"area","reduceOptions":{"calcs":["lastNotNull"]}}
+    },
+    {
+      "id": 3, "type": "stat", "title": "Major Incidents (P1)",
+      "gridPos": {"h":4,"w":4,"x":8,"y":1},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_incident_created_total{priority=\"P1\",env=\"$env\"}[30d]))","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}},
+      "options": {"colorMode":"background","graphMode":"none","reduceOptions":{"calcs":["lastNotNull"]}}
+    },
+    {
+      "id": 4, "type": "gauge", "title": "SLA Compliance %",
+      "gridPos": {"h":4,"w":4,"x":12,"y":1},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"avg(itsm_sla_compliance_ratio{env=\"$env\",service=~\"$service\"}) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}},
+      "options": {"showThresholdLabels":false,"showThresholdMarkers":true,"reduceOptions":{"calcs":["lastNotNull"]}}
+    },
+    {
+      "id": 5, "type": "gauge", "title": "Overall Health Score",
+      "gridPos": {"h":4,"w":4,"x":16,"y":1},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"avg(itsm_service_health_score{env=\"$env\",service=~\"$service\"})","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"short","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":75},{"color":"green","value":90}]}}}
+    },
+    {
+      "id": 6, "type": "gauge", "title": "Operational Risk Score",
+      "gridPos": {"h":4,"w":4,"x":20,"y":1},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"avg(itsm_operational_risk_score{env=\"$env\"})","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"short","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":40},{"color":"red","value":70}]}}}
+    },
+
+    {
+      "id": 1010, "type": "row", "title": "Incident Management", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":5}, "panels": []
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Incident Volume by Priority (30d)",
+      "gridPos": {"h":8,"w":16,"x":0,"y":6},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"sum by (priority) (increase(itsm_incident_created_total{env=\"$env\",service=~\"$service\",priority=~\"$priority\"}[1d]))","refId":"A","legendFormat":"{{priority}}"}
+      ],
+      "fieldConfig": {"defaults":{"custom":{"drawStyle":"line","lineWidth":2,"fillOpacity":15,"stacking":{"mode":"normal","group":"A"}},"unit":"short"}},
+      "options": {"legend":{"displayMode":"table","placement":"right","calcs":["sum","mean"]}}
+    },
+    {
+      "id": 11, "type": "piechart", "title": "Incident Severity Distribution",
+      "gridPos": {"h":8,"w":8,"x":16,"y":6},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum by (priority) (itsm_incident_open{env=\"$env\",service=~\"$service\"})","refId":"A","legendFormat":"{{priority}}"}],
+      "options": {"pieType":"donut","legend":{"displayMode":"table","placement":"right","values":["value","percent"]}}
+    },
+    {
+      "id": 12, "type": "bargauge", "title": "SLA Compliance by Business Service",
+      "gridPos": {"h":8,"w":12,"x":0,"y":14},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"avg by (service) (itsm_sla_compliance_ratio{env=\"$env\"}) * 100","refId":"A","legendFormat":"{{service}}"}],
+      "fieldConfig": {"defaults":{"unit":"percent","min":80,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}},
+      "options": {"orientation":"horizontal","displayMode":"gradient","showUnfilled":true}
+    },
+    {
+      "id": 13, "type": "barchart", "title": "Incidents by Assignment Group (Open vs Closed)",
+      "gridPos": {"h":8,"w":12,"x":12,"y":14},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"sum by (assignment_group) (itsm_incident_open{env=\"$env\"})","refId":"A","legendFormat":"Open"},
+        {"expr":"sum by (assignment_group) (increase(itsm_incident_resolved_total{env=\"$env\"}[30d]))","refId":"B","legendFormat":"Closed"}
+      ],
+      "options": {"orientation":"horizontal","stacking":"none","legend":{"displayMode":"list","placement":"bottom"}}
+    },
+    {
+      "id": 14, "type": "heatmap", "title": "Incident Aging Heatmap (Service x Age Bucket)",
+      "gridPos": {"h":8,"w":24,"x":0,"y":22},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum by (service, age_bucket) (itsm_incident_age_bucket{env=\"$env\"})","refId":"A","format":"heatmap"}],
+      "options": {"calculate":false,"color":{"mode":"scheme","scheme":"Oranges","steps":64}}
+    },
+
+    {
+      "id": 1020, "type": "row", "title": "Change Management", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":30}, "panels": []
+    },
+    {
+      "id": 20, "type": "stat", "title": "Change Success Rate",
+      "gridPos": {"h":4,"w":6,"x":0,"y":31},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_change_success_total{env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}},
+      "options": {"colorMode":"background","graphMode":"area","reduceOptions":{"calcs":["lastNotNull"]}}
+    },
+    {
+      "id": 21, "type": "stat", "title": "Failed Changes",
+      "gridPos": {"h":4,"w":6,"x":6,"y":31},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_change_failed_total{env=\"$env\"}[30d]))","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":50},{"color":"red","value":80}]}}}
+    },
+    {
+      "id": 22, "type": "stat", "title": "Emergency Change Rate",
+      "gridPos": {"h":4,"w":6,"x":12,"y":31},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_change_total{change_type=\"emergency\",env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}}
+    },
+    {
+      "id": 23, "type": "stat", "title": "CAB Approval Rate",
+      "gridPos": {"h":4,"w":6,"x":18,"y":31},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(itsm_change_cab_status{status=\"approved\",env=\"$env\"}) / sum(itsm_change_cab_status{env=\"$env\"}) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent"}}
+    },
+    {
+      "id": 24, "type": "timeseries", "title": "Change Performance (12m)",
+      "gridPos": {"h":8,"w":16,"x":0,"y":35},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"sum(increase(itsm_change_success_total{env=\"$env\"}[30d]))","refId":"A","legendFormat":"Successful"},
+        {"expr":"sum(increase(itsm_change_failed_total{env=\"$env\"}[30d]))","refId":"B","legendFormat":"Failed"},
+        {"expr":"sum(increase(itsm_change_total{change_type=\"emergency\",env=\"$env\"}[30d]))","refId":"C","legendFormat":"Emergency"}
+      ],
+      "fieldConfig": {"defaults":{"custom":{"drawStyle":"line","fillOpacity":10,"lineWidth":2}}}
+    },
+    {
+      "id": 25, "type": "piechart", "title": "CAB Decision Distribution",
+      "gridPos": {"h":8,"w":8,"x":16,"y":35},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum by (status) (itsm_change_cab_status{env=\"$env\"})","refId":"A","legendFormat":"{{status}}"}],
+      "options": {"pieType":"pie","legend":{"displayMode":"table","values":["value","percent"]}}
+    },
+    {
+      "id": 26, "type": "table", "title": "High-Risk Changes (Upcoming)",
+      "gridPos": {"h":8,"w":24,"x":0,"y":43},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"itsm_change_planned{risk=~\"High|Critical\",env=\"$env\"}","refId":"A","format":"table","instant":true}],
+      "options": {"showHeader":true,"cellHeight":"sm"},
+      "fieldConfig": {
+        "defaults": {"custom":{"align":"left"}},
+        "overrides": [
+          {"matcher":{"id":"byName","options":"risk"},"properties":[{"id":"custom.cellOptions","value":{"type":"color-background"}},{"id":"mappings","value":[{"type":"value","options":{"Critical":{"color":"red"},"High":{"color":"orange"},"Medium":{"color":"yellow"}}}]}]},
+          {"matcher":{"id":"byName","options":"change_id"},"properties":[{"id":"links","value":[{"title":"Open in Jira","url":"https://jira.example.com/browse/${__value.raw}","targetBlank":true}]}]}
+        ]
+      }
+    },
+
+    {
+      "id": 1030, "type": "row", "title": "Configuration & Asset Management (CMDB)", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":51}, "panels": []
+    },
+    {
+      "id": 30, "type": "stat", "title": "Active Assets",
+      "gridPos": {"h":4,"w":6,"x":0,"y":52},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(cmdb_asset_active{env=\"$env\"})","refId":"A"}]
+    },
+    {
+      "id": 31, "type": "stat", "title": "Critical Assets",
+      "gridPos": {"h":4,"w":6,"x":6,"y":52},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(cmdb_asset_active{criticality=\"critical\",env=\"$env\"})","refId":"A"}],
+      "fieldConfig": {"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"blue","value":null}]}}}
+    },
+    {
+      "id": 32, "type": "gauge", "title": "CMDB Coverage %",
+      "gridPos": {"h":4,"w":6,"x":12,"y":52},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"cmdb_coverage_ratio * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}}
+    },
+    {
+      "id": 33, "type": "stat", "title": "EOL Assets (60d)",
+      "gridPos": {"h":4,"w":6,"x":18,"y":52},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(cmdb_asset_eol_within_days{days=\"60\",env=\"$env\"})","refId":"A"}],
+      "fieldConfig": {"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":500},{"color":"red","value":800}]}}}
+    },
+    {
+      "id": 34, "type": "piechart", "title": "Asset Lifecycle Distribution",
+      "gridPos": {"h":8,"w":12,"x":0,"y":56},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum by (stage) (cmdb_asset_lifecycle{env=\"$env\"})","refId":"A","legendFormat":"{{stage}}"}],
+      "options": {"pieType":"donut"}
+    },
+    {
+      "id": 35, "type": "barchart", "title": "Assets by Ownership Team",
+      "gridPos": {"h":8,"w":12,"x":12,"y":56},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum by (team) (cmdb_asset_active{env=\"$env\"})","refId":"A","legendFormat":"{{team}}"}],
+      "options": {"orientation":"horizontal"}
+    },
+
+    {
+      "id": 1040, "type": "row", "title": "Executive Risk Dashboard", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":64}, "panels": []
+    },
+    {
+      "id": 40, "type": "heatmap", "title": "Operational Risk Heatmap (Service x Category)",
+      "gridPos": {"h":10,"w":14,"x":0,"y":65},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"itsm_risk_score{env=\"$env\"}","refId":"A","format":"heatmap"}],
+      "options": {"calculate":false,"color":{"mode":"scheme","scheme":"RdYlGn","reverse":true,"steps":64}}
+    },
+    {
+      "id": 41, "type": "table", "title": "Top 10 Operational Risks",
+      "gridPos": {"h":10,"w":10,"x":14,"y":65},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"topk(10, itsm_risk_score{env=\"$env\"})","refId":"A","format":"table","instant":true}],
+      "fieldConfig": {
+        "defaults": {"custom":{"align":"left"}},
+        "overrides": [
+          {"matcher":{"id":"byName","options":"Value"},"properties":[{"id":"custom.cellOptions","value":{"type":"gauge","mode":"gradient"}},{"id":"max","value":100},{"id":"min","value":0},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":50},{"color":"red","value":75}]}}]}
+        ]
+      }
+    },
+
+    {
+      "id": 1050, "type": "row", "title": "2. IT Performance Management", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":75}, "panels": []
+    },
+    {
+      "id": 50, "type": "stat", "title": "Successful Change Rate",
+      "gridPos": {"h":5,"w":4,"x":0,"y":76},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_change_success_total{env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}},
+      "options": {"colorMode":"background","graphMode":"area"}
+    },
+    {
+      "id": 51, "type": "stat", "title": "Repeated Incident Rate (Internal)",
+      "gridPos": {"h":5,"w":4,"x":4,"y":76},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(itsm_incident_repeated{source=\"internal\",env=\"$env\"}) / sum(itsm_incident_created_total{env=\"$env\"}) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}}
+    },
+    {
+      "id": 52, "type": "stat", "title": "Repeated Incident Rate (3rd Party)",
+      "gridPos": {"h":5,"w":4,"x":8,"y":76},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(itsm_incident_repeated{source=\"third_party\",env=\"$env\"}) / sum(itsm_incident_created_total{env=\"$env\"}) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent"}}
+    },
+    {
+      "id": 53, "type": "stat", "title": "Emergency Change Rate",
+      "gridPos": {"h":5,"w":4,"x":12,"y":76},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [{"expr":"sum(increase(itsm_change_total{change_type=\"emergency\",env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}}
+    },
+    {
+      "id": 54, "type": "stat", "title": "MTTD (auto/manual, min)",
+      "gridPos": {"h":5,"w":4,"x":16,"y":76},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"avg(itsm_mttd_minutes{detection=\"auto\",env=\"$env\"})","refId":"A","legendFormat":"Auto"},
+        {"expr":"avg(itsm_mttd_minutes{detection=\"manual\",env=\"$env\"})","refId":"B","legendFormat":"Manual"}
+      ],
+      "fieldConfig": {"defaults":{"unit":"m","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":10},{"color":"red","value":20}]}}}
+    },
+    {
+      "id": 55, "type": "stat", "title": "MTTA / MTTR (WH vs NH)",
+      "gridPos": {"h":5,"w":4,"x":20,"y":76},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"avg(itsm_mtta_minutes{hours=\"working\",env=\"$env\"})","refId":"A","legendFormat":"MTTA WH (m)"},
+        {"expr":"avg(itsm_mtta_minutes{hours=\"non_working\",env=\"$env\"})","refId":"B","legendFormat":"MTTA NH (m)"},
+        {"expr":"avg(itsm_mttr_hours{hours=\"working\",env=\"$env\"})","refId":"C","legendFormat":"MTTR WH (h)"},
+        {"expr":"avg(itsm_mttr_hours{hours=\"non_working\",env=\"$env\"})","refId":"D","legendFormat":"MTTR NH (h)"}
+      ]
+    },
+
+    {
+      "id": 1060, "type": "row", "title": "Trend Analysis - Core Banking & Card Systems", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":81}, "panels": []
+    },
+    {
+      "id": 60, "type": "timeseries", "title": "Core Banking - Incident / Change / SLA / MTTR",
+      "gridPos": {"h":9,"w":12,"x":0,"y":82},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"sum(increase(itsm_incident_created_total{service=~\"Core Banking.*\"}[1d]))","refId":"A","legendFormat":"Incidents"},
+        {"expr":"sum(increase(itsm_change_total{service=~\"Core Banking.*\"}[1d]))","refId":"B","legendFormat":"Changes"},
+        {"expr":"avg(itsm_sla_compliance_ratio{service=~\"Core Banking.*\"}) * 100","refId":"C","legendFormat":"SLA %"},
+        {"expr":"avg(itsm_mttr_hours{service=~\"Core Banking.*\"})","refId":"D","legendFormat":"MTTR (h)"}
+      ]
+    },
+    {
+      "id": 61, "type": "timeseries", "title": "Card Systems - Incident / Change / SLA / MTTR",
+      "gridPos": {"h":9,"w":12,"x":12,"y":82},
+      "datasource": {"type":"prometheus","uid":"${datasource}"},
+      "targets": [
+        {"expr":"sum(increase(itsm_incident_created_total{service=~\"Card.*\"}[1d]))","refId":"A","legendFormat":"Incidents"},
+        {"expr":"sum(increase(itsm_change_total{service=~\"Card.*\"}[1d]))","refId":"B","legendFormat":"Changes"},
+        {"expr":"avg(itsm_sla_compliance_ratio{service=~\"Card.*\"}) * 100","refId":"C","legendFormat":"SLA %"},
+        {"expr":"avg(itsm_mttr_hours{service=~\"Card.*\"})","refId":"D","legendFormat":"MTTR (h)"}
+      ]
+    },
+
+    {
+      "id": 1070, "type": "row", "title": "Executive Insights (Automated)", "collapsed": false,
+      "gridPos": {"h":1,"w":24,"x":0,"y":91}, "panels": []
+    },
+    {
+      "id": 70, "type": "text", "title": "Board-Level Insights",
+      "gridPos": {"h":10,"w":24,"x":0,"y":92},
+      "options": {
+        "mode": "markdown",
+        "content": "### Key Insights (auto-generated)\n\n- **MTTD (manual) trending up** — +6% MoM in Channels; expand PRTG to Mobile Banking edge nodes.\n- **MTTR improved on Core Banking** — -12% QoQ post ledger-reconciliation runbook automation.\n- **Card Issuance emergency changes exceed threshold** — 8 in last 30d (target ≤ 3). Investigate CAB bypass.\n- **SLA breach risk – SWIFT Gateway** — 3x P2 open >6h; escalate to Middleware on-call.\n- **Recurring incidents – Mobile Banking login** — 14 in 30d; open PRB with App Support.\n- **High operational risk – SWIFT MQ SPOF** — prioritize CHG-40244 at next CAB.\n\n### CAB Priorities\n1. CHG-40244 - SWIFT MQ HA\n2. Card Auth Switch capacity refresh (target 40% headroom)\n3. Core Banking Ledger DR test before Q-end\n4. TLS cert renewal - Internet Banking (28d)"
+      }
+    }
+  ]
+}
