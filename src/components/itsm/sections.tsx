@@ -352,7 +352,7 @@ function MttGroup({ label, avg, unit, trend, target, actual, tone }: {
       <div className="grid grid-cols-3 gap-3">
         <div>
           <div className="text-xs text-muted-foreground">Average</div>
-          <div className={`text-2xl font-semibold tabular-nums text-[color:var(--color-${tone === "success" ? "success" : "destructive"})]`}>
+          <div className="text-2xl font-semibold tabular-nums" style={{ color: `var(--color-${tone === "success" ? "success" : tone === "warning" ? "warning" : "destructive"})` }}>
             {avg}<span className="text-sm text-muted-foreground ml-1">{unit}</span>
           </div>
         </div>
