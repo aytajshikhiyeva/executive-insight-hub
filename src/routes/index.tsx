@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Activity, AlertTriangle, Boxes, GitPullRequestArrow, LayoutDashboard, ListTree,
+  Activity, AlertTriangle, Bell, Boxes, GitPullRequestArrow, LayoutDashboard, ListTree,
   RefreshCw, Shield, Sparkles, TrendingUp,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,8 @@ import {
   OverviewSection, IncidentSection, ChangeSection, AssetSection, RiskSection,
   PerformanceSection, TrendAnalysisSection, InsightsSection,
 } from "@/components/itsm/sections";
+import { AlertingSection } from "@/components/itsm/alerting";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,7 +37,9 @@ const NAV = [
   { id: "performance", label: "IT Performance", icon: Activity },
   { id: "trends", label: "Trend Analysis", icon: TrendingUp },
   { id: "insights", label: "Executive Insights", icon: Sparkles },
+  { id: "alerting", label: "Alerting", icon: Bell },
 ] as const;
+
 
 type TabId = (typeof NAV)[number]["id"];
 
@@ -109,6 +113,8 @@ function DashboardPage() {
             {tab === "performance" && <PerformanceSection />}
             {tab === "trends" && <TrendAnalysisSection />}
             {tab === "insights" && <InsightsSection />}
+            {tab === "alerting" && <AlertingSection />}
+
           </div>
           <footer className="border-t border-border px-4 lg:px-6 py-3 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
             <span>ITSM Executive Dashboard · demo data · Enterprise Banking</span>
