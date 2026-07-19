@@ -113,6 +113,8 @@ function DashboardPage() {
             {tab === "performance" && <PerformanceSection />}
             {tab === "trends" && <TrendAnalysisSection />}
             {tab === "insights" && <InsightsSection />}
+            {tab === "alerting" && <AlertingSection />}
+
           </div>
           <footer className="border-t border-border px-4 lg:px-6 py-3 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
             <span>ITSM Executive Dashboard · demo data · Enterprise Banking</span>
