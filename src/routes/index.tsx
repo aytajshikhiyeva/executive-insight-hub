@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Activity, AlertTriangle, Boxes, GitPullRequestArrow, LayoutDashboard, ListTree,
+  Activity, AlertTriangle, Bell, Boxes, GitPullRequestArrow, LayoutDashboard, ListTree,
   RefreshCw, Shield, Sparkles, TrendingUp,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,8 @@ import {
   OverviewSection, IncidentSection, ChangeSection, AssetSection, RiskSection,
   PerformanceSection, TrendAnalysisSection, InsightsSection,
 } from "@/components/itsm/sections";
+import { AlertingSection } from "@/components/itsm/alerting";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
