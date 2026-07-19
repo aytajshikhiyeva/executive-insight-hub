@@ -77,14 +77,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "ITSM Executive Dashboard" },
+      { name: "description", content: "Enterprise ITSM performance dashboard with ITIL v4 KPIs, incident and change analytics, CMDB and risk views for executive board reporting." },
+      { property: "og:title", content: "ITSM Executive Dashboard" },
+      { property: "og:description", content: "Grafana-style enterprise ITSM dashboard for executive board reporting." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
