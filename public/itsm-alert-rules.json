@@ -1,0 +1,126 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "itsm-sla",
+      "folder": "ITSM",
+      "interval": "1m",
+      "rules": [
+        {
+          "uid": "itsm-sla-breach-risk",
+          "title": "SLA Breach Risk (per service)",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"avg by (service) (itsm_sla_compliance_ratio) * 100"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"lt","params":[95]}}]}}
+          ],
+          "for": "10m",
+          "annotations": {"summary":"SLA below 95% on {{ $labels.service }}","runbook_url":"https://runbooks.example.com/sla-breach"},
+          "labels": {"severity":"high","team":"itsm","channel":"slack,email,teams"}
+        },
+        {
+          "uid": "itsm-p1-open",
+          "title": "P1 Major Incident Open",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(itsm_incident_open{priority=\"P1\"})"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[0]}}]}}
+          ],
+          "for": "0m",
+          "labels": {"severity":"critical","channel":"pagerduty,slack,teams,email"}
+        }
+      ]
+    },
+    {
+      "orgId": 1,
+      "name": "itsm-changes",
+      "folder": "ITSM",
+      "interval": "5m",
+      "rules": [
+        {
+          "uid": "itsm-emergency-change-rate",
+          "title": "Emergency Change Rate > 10%",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(increase(itsm_change_total{change_type=\"emergency\"}[30d])) / sum(increase(itsm_change_total[30d])) * 100"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[10]}}]}}
+          ],
+          "for": "15m",
+          "labels": {"severity":"warning","channel":"email,teams"}
+        },
+        {
+          "uid": "itsm-change-failure-rate",
+          "title": "Change Failure Rate > 5%",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(increase(itsm_change_failed_total[30d])) / sum(increase(itsm_change_total[30d])) * 100"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[5]}}]}}
+          ],
+          "for": "15m",
+          "labels": {"severity":"warning","channel":"email"}
+        }
+      ]
+    },
+    {
+      "orgId": 1,
+      "name": "itsm-cmdb",
+      "folder": "ITSM",
+      "interval": "10m",
+      "rules": [
+        {
+          "uid": "itsm-cmdb-coverage-low",
+          "title": "CMDB Coverage < 90%",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"cmdb_coverage_ratio * 100"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"lt","params":[90]}}]}}
+          ],
+          "for": "1h",
+          "labels": {"severity":"warning","channel":"email"}
+        },
+        {
+          "uid": "itsm-eol-assets",
+          "title": "EOL Assets (60d) > 500",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(cmdb_asset_eol_within_days{days=\"60\"})"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[500]}}]}}
+          ],
+          "for": "1h",
+          "labels": {"severity":"high","channel":"email,teams"}
+        }
+      ]
+    },
+    {
+      "orgId": 1,
+      "name": "itsm-performance",
+      "folder": "ITSM",
+      "interval": "5m",
+      "rules": [
+        {
+          "uid": "itsm-mttr-breach",
+          "title": "MTTR > 4h (non-working hours)",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"avg(itsm_mttr_hours{hours=\"non_working\"})"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[4]}}]}}
+          ],
+          "for": "30m",
+          "labels": {"severity":"high","channel":"slack,teams"}
+        },
+        {
+          "uid": "itsm-recurring-incidents",
+          "title": "Recurring Incidents > 10 (30d, per service)",
+          "condition": "C",
+          "data": [
+            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum by (service) (itsm_incident_repeated)"}},
+            {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[10]}}]}}
+          ],
+          "for": "1h",
+          "labels": {"severity":"warning","channel":"email,teams"}
+        }
+      ]
+    }
+  ]
+}

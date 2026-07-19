@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Activity, AlertTriangle, Bell, Boxes, GitPullRequestArrow, LayoutDashboard, ListTree,
+  Activity, AlertTriangle, Bell, Boxes, Download, GitPullRequestArrow, LayoutDashboard, ListTree,
   RefreshCw, Shield, Sparkles, TrendingUp,
 } from "lucide-react";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -143,9 +144,20 @@ function TopBar() {
           <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-success)] animate-pulse" />
           LIVE
         </Badge>
+        <a href="/itsm-executive-dashboard.json" download>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Grafana JSON
+          </Button>
+        </a>
+        <a href="/itsm-alert-rules.json" download>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Alert Rules
+          </Button>
+        </a>
         <Button variant="outline" size="sm" className="h-8 gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </Button>
+
       </div>
     </header>
   );
