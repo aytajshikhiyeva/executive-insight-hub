@@ -37,7 +37,9 @@ const NAV = [
   { id: "performance", label: "IT Performance", icon: Activity },
   { id: "trends", label: "Trend Analysis", icon: TrendingUp },
   { id: "insights", label: "Executive Insights", icon: Sparkles },
+  { id: "alerting", label: "Alerting", icon: Bell },
 ] as const;
+
 
 type TabId = (typeof NAV)[number]["id"];
 
