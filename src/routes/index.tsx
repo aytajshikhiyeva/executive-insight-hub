@@ -40,6 +40,7 @@ const NAV = [
   { id: "trends", label: "Trend Analysis", icon: TrendingUp },
   { id: "insights", label: "Executive Insights", icon: Sparkles },
   { id: "alerting", label: "Alerting", icon: Bell },
+  { id: "reports", label: "Reports", icon: FileText },
 ] as const;
 
 
@@ -116,6 +117,7 @@ function DashboardPage() {
             {tab === "trends" && <TrendAnalysisSection />}
             {tab === "insights" && <InsightsSection />}
             {tab === "alerting" && <AlertingSection />}
+            {tab === "reports" && <ReportsSection />}
 
           </div>
           <footer className="border-t border-border px-4 lg:px-6 py-3 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
