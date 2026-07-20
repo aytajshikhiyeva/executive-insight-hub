@@ -12,11 +12,11 @@
           "title": "SLA Breach Risk (per service)",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"avg by (service) (itsm_sla_compliance_ratio) * 100"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT service AS metric, 100.0 * SUM(CASE WHEN sla_breached=false THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM incidents WHERE created_at >= NOW() - INTERVAL '24 hours' GROUP BY 1"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"lt","params":[95]}}]}}
           ],
           "for": "10m",
-          "annotations": {"summary":"SLA below 95% on {{ $labels.service }}","runbook_url":"https://runbooks.example.com/sla-breach"},
+          "annotations": {"summary":"SLA below 95% on {{ $labels.service }}","description":"SLA compliance for the service dropped below the 95% target over the last 24 hours.","runbook_url":"https://runbooks.example.com/sla-breach"},
           "labels": {"severity":"high","team":"itsm","channel":"slack,email,teams"}
         },
         {
@@ -24,10 +24,11 @@
           "title": "P1 Major Incident Open",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(itsm_incident_open{priority=\"P1\"})"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT COUNT(*) AS value FROM incidents WHERE priority='P1' AND status NOT IN ('resolved','closed')"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[0]}}]}}
           ],
           "for": "0m",
+          "annotations": {"summary":"P1 major incident is open","description":"One or more P1 incidents are currently unresolved. Trigger major-incident bridge."},
           "labels": {"severity":"critical","channel":"pagerduty,slack,teams,email"}
         }
       ]
@@ -43,10 +44,11 @@
           "title": "Emergency Change Rate > 10%",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(increase(itsm_change_total{change_type=\"emergency\"}[30d])) / sum(increase(itsm_change_total[30d])) * 100"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN change_type='emergency' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE created_at >= NOW() - INTERVAL '30 days'"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[10]}}]}}
           ],
           "for": "15m",
+          "annotations": {"summary":"Emergency change rate exceeded 10%","description":"CAB process bypass rate elevated. Review change quality and unplanned work."},
           "labels": {"severity":"warning","channel":"email,teams"}
         },
         {
@@ -54,10 +56,11 @@
           "title": "Change Failure Rate > 5%",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(increase(itsm_change_failed_total[30d])) / sum(increase(itsm_change_total[30d])) * 100"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE actual_end >= NOW() - INTERVAL '30 days'"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[5]}}]}}
           ],
           "for": "15m",
+          "annotations": {"summary":"Change failure rate above 5%","description":"Review failed changes and consider a change freeze on the impacted service tier."},
           "labels": {"severity":"warning","channel":"email"}
         }
       ]
@@ -73,10 +76,11 @@
           "title": "CMDB Coverage < 90%",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"cmdb_coverage_ratio * 100"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN team IS NOT NULL AND lifecycle_stage IS NOT NULL THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM assets"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"lt","params":[90]}}]}}
           ],
           "for": "1h",
+          "annotations": {"summary":"CMDB coverage below 90%","description":"Assets are missing owner or lifecycle. Data quality risk."},
           "labels": {"severity":"warning","channel":"email"}
         },
         {
@@ -84,10 +88,11 @@
           "title": "EOL Assets (60d) > 500",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum(cmdb_asset_eol_within_days{days=\"60\"})"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT COUNT(*) AS value FROM assets WHERE eol_date BETWEEN NOW() AND NOW() + INTERVAL '60 days'"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[500]}}]}}
           ],
           "for": "1h",
+          "annotations": {"summary":"More than 500 assets reach EOL in 60d","description":"Plan refresh or extended-support contracts."},
           "labels": {"severity":"high","channel":"email,teams"}
         }
       ]
@@ -103,10 +108,11 @@
           "title": "MTTR > 4h (non-working hours)",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"avg(itsm_mttr_hours{hours=\"non_working\"})"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT AVG(EXTRACT(EPOCH FROM (resolved_at-created_at))/3600.0) AS value FROM incidents WHERE hours_bucket='non_working' AND resolved_at >= NOW() - INTERVAL '24 hours'"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[4]}}]}}
           ],
           "for": "30m",
+          "annotations": {"summary":"MTTR NH above 4h","description":"Non-working-hours resolution SLO breached. Review on-call staffing."},
           "labels": {"severity":"high","channel":"slack,teams"}
         },
         {
@@ -114,10 +120,11 @@
           "title": "Recurring Incidents > 10 (30d, per service)",
           "condition": "C",
           "data": [
-            {"refId":"A","datasourceUid":"prometheus","model":{"expr":"sum by (service) (itsm_incident_repeated)"}},
+            {"refId":"A","datasourceUid":"postgres","model":{"format":"table","rawSql":"SELECT service AS metric, COUNT(*) AS value FROM incidents WHERE is_recurring=true AND created_at >= NOW() - INTERVAL '30 days' GROUP BY 1"}},
             {"refId":"C","datasourceUid":"__expr__","model":{"type":"threshold","conditions":[{"evaluator":{"type":"gt","params":[10]}}]}}
           ],
           "for": "1h",
+          "annotations": {"summary":"Recurring incidents cluster on {{ $labels.metric }}","description":"Open a Problem record and root-cause analysis."},
           "labels": {"severity":"warning","channel":"email,teams"}
         }
       ]
