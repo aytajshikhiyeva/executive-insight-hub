@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Activity, AlertTriangle, Bell, Boxes, Download, GitPullRequestArrow, LayoutDashboard, ListTree,
+  Activity, AlertTriangle, Bell, Boxes, Download, FileText, GitPullRequestArrow, LayoutDashboard, ListTree,
   RefreshCw, Shield, Sparkles, TrendingUp,
 } from "lucide-react";
 
@@ -13,6 +13,7 @@ import {
   PerformanceSection, TrendAnalysisSection, InsightsSection,
 } from "@/components/itsm/sections";
 import { AlertingSection } from "@/components/itsm/alerting";
+import { ReportsSection } from "@/components/itsm/reports";
 
 
 export const Route = createFileRoute("/")({
