@@ -1,6 +1,18 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, Info, Minus } from "lucide-react";
+
+function InfoDot({ text }: { text: string }) {
+  return (
+    <span
+      title={text}
+      aria-label={text}
+      className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground cursor-help shrink-0"
+    >
+      <Info className="h-3.5 w-3.5" />
+    </span>
+  );
+}
 
 export function Panel({
   title,
@@ -8,22 +20,27 @@ export function Panel({
   children,
   className,
   padded = true,
+  info,
 }: {
   title?: string;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
   padded?: boolean;
+  info?: string;
 }) {
   return (
     <div className={cn("panel flex flex-col", className)}>
       {title && (
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
-          <h3 className="grafana-title">{title}</h3>
+        <div className="flex items-center justify-between border-b border-border px-3 py-2 gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h3 className="grafana-title truncate">{title}</h3>
+            {info && <InfoDot text={info} />}
+          </div>
           {actions}
         </div>
       )}
-      <div className={cn("flex-1", padded && "p-3")}>{children}</div>
+      <div className={cn("flex-1 min-w-0", padded && "p-3")}>{children}</div>
     </div>
   );
 }
@@ -45,6 +62,7 @@ export function Stat({
   tone = "neutral",
   trend,
   className,
+  info,
 }: {
   label: string;
   value: string | number;
@@ -53,10 +71,14 @@ export function Stat({
   tone?: StatTone;
   trend?: number;
   className?: string;
+  info?: string;
 }) {
   return (
     <div className={cn("panel p-3 flex flex-col gap-1 min-h-[92px]", className)}>
-      <div className="grafana-title truncate">{label}</div>
+      <div className="flex items-center justify-between gap-1">
+        <div className="grafana-title truncate">{label}</div>
+        {info && <InfoDot text={info} />}
+      </div>
       <div className="flex items-baseline gap-1">
         <span className={cn("text-2xl font-semibold tabular-nums", toneClass[tone])}>{value}</span>
         {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}

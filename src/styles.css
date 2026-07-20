@@ -109,3 +109,10 @@
   text-transform: uppercase;
   color: var(--color-muted-foreground);
 }
+
+@media print {
+  header, aside, footer, .no-print { display: none !important; }
+  body, html { background: #fff !important; color: #000 !important; }
+  .panel { break-inside: avoid; border: 1px solid #ddd !important; background: #fff !important; }
+  * { color: #000 !important; }
+}

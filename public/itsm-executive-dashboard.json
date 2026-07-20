@@ -3,96 +3,46 @@
     "list": [
       {
         "name": "Deployments",
-        "datasource": "-- Grafana --",
+        "datasource": { "type": "postgres", "uid": "${datasource}" },
         "enable": true,
         "iconColor": "rgba(0, 211, 255, 1)",
-        "tags": ["deploy", "change"],
-        "type": "tags"
+        "target": {
+          "rawSql": "SELECT actual_start AS time, change_id AS text, ARRAY['deploy', change_type] AS tags FROM changes WHERE $__timeFilter(actual_start) AND status='implemented'",
+          "format": "table"
+        }
       },
       {
         "name": "Major Incidents",
-        "datasource": "-- Grafana --",
+        "datasource": { "type": "postgres", "uid": "${datasource}" },
         "enable": true,
         "iconColor": "red",
-        "tags": ["P1", "major-incident"],
-        "type": "tags"
+        "target": {
+          "rawSql": "SELECT created_at AS time, incident_id AS text, ARRAY['P1','major-incident', service] AS tags FROM incidents WHERE priority='P1' AND $__timeFilter(created_at)",
+          "format": "table"
+        }
       }
     ]
   },
-  "description": "ITSM Executive Dashboard for Enterprise Banking. ITIL v4 KPIs across Incident, Change, CMDB/Asset, Risk and IT Performance. Data sources: Jira (incidents/changes) + CMDB.",
+  "description": "ITSM Executive Dashboard for Enterprise Banking. ITIL v4 KPIs across Incident, Change, CMDB/Asset, Risk and IT Performance. Data source: PostgreSQL (Jira + CMDB replicas).",
   "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 1,
   "id": null,
-  "uid": "itsm-exec-banking",
-  "title": "ITSM Executive Dashboard",
-  "tags": ["itsm", "itil", "banking", "executive", "jira", "cmdb"],
+  "uid": "itsm-exec-banking-pg",
+  "title": "ITSM Executive Dashboard (PostgreSQL)",
+  "tags": ["itsm", "itil", "banking", "executive", "jira", "cmdb", "postgres"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
-  "weekStart": "",
+  "version": 2,
   "refresh": "5m",
   "time": { "from": "now-30d", "to": "now" },
-  "timepicker": {
-    "refresh_intervals": ["30s", "1m", "5m", "15m", "30m", "1h", "6h", "12h", "1d"]
-  },
+  "timepicker": { "refresh_intervals": ["1m", "5m", "15m", "30m", "1h", "6h", "12h", "1d"] },
   "templating": {
     "list": [
-      {
-        "name": "datasource",
-        "type": "datasource",
-        "query": "prometheus",
-        "label": "Data source",
-        "current": { "text": "default", "value": "default" },
-        "hide": 0
-      },
-      {
-        "name": "service",
-        "type": "query",
-        "label": "Business Service",
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
-        "query": "label_values(itsm_incident_open{env=\"$env\"}, service)",
-        "refresh": 2,
-        "includeAll": true,
-        "multi": true,
-        "current": { "text": "All", "value": "$__all" }
-      },
-      {
-        "name": "priority",
-        "type": "custom",
-        "label": "Priority",
-        "query": "P1,P2,P3,P4",
-        "includeAll": true,
-        "multi": true,
-        "current": { "text": "All", "value": "$__all" }
-      },
-      {
-        "name": "env",
-        "type": "custom",
-        "label": "Environment",
-        "query": "prod,uat,dr,dev",
-        "current": { "text": "prod", "value": "prod" }
-      },
-      {
-        "name": "assignment_group",
-        "type": "query",
-        "label": "Assignment Group",
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
-        "query": "label_values(itsm_incident_open, assignment_group)",
-        "refresh": 2,
-        "includeAll": true,
-        "multi": true,
-        "current": { "text": "All", "value": "$__all" }
-      },
-      {
-        "name": "change_type",
-        "type": "custom",
-        "label": "Change Type",
-        "query": "standard,normal,emergency",
-        "includeAll": true,
-        "multi": true,
-        "current": { "text": "All", "value": "$__all" }
-      }
+      { "name": "datasource", "type": "datasource", "query": "postgres", "label": "Data source", "current": { "text": "PostgreSQL", "value": "postgres" }, "hide": 0 },
+      { "name": "env", "type": "custom", "label": "Environment", "query": "prod,uat,dr,dev", "current": { "text": "prod", "value": "prod" } },
+      { "name": "service", "type": "query", "label": "Business Service", "datasource": { "type": "postgres", "uid": "${datasource}" }, "query": "SELECT DISTINCT service FROM incidents WHERE env='${env}' ORDER BY 1", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } },
+      { "name": "priority", "type": "custom", "label": "Priority", "query": "P1,P2,P3,P4", "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } },
+      { "name": "assignment_group", "type": "query", "label": "Assignment Group", "datasource": { "type": "postgres", "uid": "${datasource}" }, "query": "SELECT DISTINCT assignment_group FROM incidents WHERE env='${env}' ORDER BY 1", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } },
+      { "name": "change_type", "type": "custom", "label": "Change Type", "query": "standard,normal,emergency", "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } }
     ]
   },
   "links": [
@@ -101,332 +51,264 @@
     { "title": "CAB Calendar", "url": "https://jira.example.com/servicedesk/change-calendar", "type": "link", "icon": "external link", "targetBlank": true }
   ],
   "panels": [
-    {
-      "id": 1000, "type": "row", "title": "1. ITSM Overview - Executive Summary",
-      "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":0}, "panels": []
+    { "id": 1000, "type": "row", "title": "1. ITSM Overview - Executive Summary", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":0}, "panels": [] },
+
+    { "id": 1, "type": "stat", "title": "Total Incidents (30d)",
+      "description": "Count of all incident tickets created in the selected time window. Baseline volume KPI: sudden spikes indicate systemic issues.",
+      "gridPos": {"h":5,"w":4,"x":0,"y":1},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM incidents WHERE env='${env}' AND service IN (${service:sqlstring}) AND $__timeFilter(created_at)"}]
     },
-    {
-      "id": 1, "type": "stat", "title": "Total Incidents (30d)",
-      "gridPos": {"h":4,"w":4,"x":0,"y":1},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_incident_created_total{env=\"$env\",service=~\"$service\"}[30d]))","refId":"A"}],
-      "options": {"colorMode":"background","graphMode":"area","reduceOptions":{"calcs":["lastNotNull"]},"textMode":"auto"},
-      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"blue","value":null}]}}}
+    { "id": 2, "type": "stat", "title": "Open Incidents",
+      "description": "Currently open (not resolved / not closed) incidents. Watch trend — a rising open backlog signals reduced throughput.",
+      "gridPos": {"h":5,"w":4,"x":4,"y":1},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM incidents WHERE env='${env}' AND service IN (${service:sqlstring}) AND status NOT IN ('resolved','closed')"}]
     },
-    {
-      "id": 2, "type": "stat", "title": "Open Incidents",
-      "gridPos": {"h":4,"w":4,"x":4,"y":1},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(itsm_incident_open{env=\"$env\",service=~\"$service\"})","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":250},{"color":"red","value":400}]}}},
-      "options": {"colorMode":"value","graphMode":"area","reduceOptions":{"calcs":["lastNotNull"]}}
+    { "id": 3, "type": "stat", "title": "Major Incidents (P1)",
+      "description": "P1 incidents created in window. Executive-level KPI — any non-zero value should be reviewed at CAB.",
+      "gridPos": {"h":5,"w":4,"x":8,"y":1},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM incidents WHERE env='${env}' AND priority='P1' AND $__timeFilter(created_at)"}]
     },
-    {
-      "id": 3, "type": "stat", "title": "Major Incidents (P1)",
-      "gridPos": {"h":4,"w":4,"x":8,"y":1},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_incident_created_total{priority=\"P1\",env=\"$env\"}[30d]))","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}},
-      "options": {"colorMode":"background","graphMode":"none","reduceOptions":{"calcs":["lastNotNull"]}}
+    { "id": 4, "type": "gauge", "title": "SLA Compliance %",
+      "description": "Percentage of incidents resolved within their SLA target. Target ≥ 95% (ITIL v4 best practice for Tier-1 banking services).",
+      "gridPos": {"h":5,"w":4,"x":12,"y":1},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN sla_breached=false THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0) AS value FROM incidents WHERE env='${env}' AND service IN (${service:sqlstring}) AND $__timeFilter(created_at)"}],
+      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}}
     },
-    {
-      "id": 4, "type": "gauge", "title": "SLA Compliance %",
-      "gridPos": {"h":4,"w":4,"x":12,"y":1},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"avg(itsm_sla_compliance_ratio{env=\"$env\",service=~\"$service\"}) * 100","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}},
-      "options": {"showThresholdLabels":false,"showThresholdMarkers":true,"reduceOptions":{"calcs":["lastNotNull"]}}
+    { "id": 5, "type": "gauge", "title": "Overall Health Score",
+      "description": "Composite service-health index (0-100) blending availability, SLA, error budget, and incident load. > 85 = healthy.",
+      "gridPos": {"h":5,"w":4,"x":16,"y":1},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT AVG(health_score) AS value FROM service_health WHERE env='${env}' AND service IN (${service:sqlstring}) AND ts >= NOW() - INTERVAL '1 hour'"}],
+      "fieldConfig": {"defaults":{"min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":70},{"color":"green","value":85}]}}}
     },
-    {
-      "id": 5, "type": "gauge", "title": "Overall Health Score",
-      "gridPos": {"h":4,"w":4,"x":16,"y":1},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"avg(itsm_service_health_score{env=\"$env\",service=~\"$service\"})","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"short","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":75},{"color":"green","value":90}]}}}
-    },
-    {
-      "id": 6, "type": "gauge", "title": "Operational Risk Score",
-      "gridPos": {"h":4,"w":4,"x":20,"y":1},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"avg(itsm_operational_risk_score{env=\"$env\"})","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"short","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":40},{"color":"red","value":70}]}}}
+    { "id": 6, "type": "gauge", "title": "Operational Risk Score",
+      "description": "Composite operational risk (0-100) — lower is better. Aggregates capacity, EOL, security, change-failure and vendor risk.",
+      "gridPos": {"h":5,"w":4,"x":20,"y":1},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT AVG(score) AS value FROM risk_scores WHERE env='${env}' AND ts >= NOW() - INTERVAL '1 day'"}],
+      "fieldConfig": {"defaults":{"min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":40},{"color":"red","value":65}]}}}
     },
 
-    {
-      "id": 1010, "type": "row", "title": "Incident Management", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":5}, "panels": []
+    { "id": 1010, "type": "row", "title": "Incident Management", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":6}, "panels": [] },
+
+    { "id": 10, "type": "timeseries", "title": "Incident Volume by Priority (30d)",
+      "description": "Daily incident volume grouped by priority (P1-P4). Reveals surges and recurring peak windows.",
+      "gridPos": {"h":8,"w":14,"x":0,"y":7},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"time_series","rawSql":"SELECT date_trunc('day', created_at) AS time, priority AS metric, COUNT(*) AS value FROM incidents WHERE env='${env}' AND service IN (${service:sqlstring}) AND priority IN (${priority:sqlstring}) AND $__timeFilter(created_at) GROUP BY 1,2 ORDER BY 1"}]
     },
-    {
-      "id": 10, "type": "timeseries", "title": "Incident Volume by Priority (30d)",
-      "gridPos": {"h":8,"w":16,"x":0,"y":6},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [
-        {"expr":"sum by (priority) (increase(itsm_incident_created_total{env=\"$env\",service=~\"$service\",priority=~\"$priority\"}[1d]))","refId":"A","legendFormat":"{{priority}}"}
-      ],
-      "fieldConfig": {"defaults":{"custom":{"drawStyle":"line","lineWidth":2,"fillOpacity":15,"stacking":{"mode":"normal","group":"A"}},"unit":"short"}},
-      "options": {"legend":{"displayMode":"table","placement":"right","calcs":["sum","mean"]}}
+    { "id": 11, "type": "piechart", "title": "Incident Severity Distribution",
+      "description": "Share of open incidents by priority. Use to spot severity-mix drift (e.g. rising P1/P2 share).",
+      "gridPos": {"h":8,"w":10,"x":14,"y":7},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT priority AS metric, COUNT(*) AS value FROM incidents WHERE env='${env}' AND service IN (${service:sqlstring}) AND status NOT IN ('resolved','closed') GROUP BY 1"}]
     },
-    {
-      "id": 11, "type": "piechart", "title": "Incident Severity Distribution",
-      "gridPos": {"h":8,"w":8,"x":16,"y":6},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum by (priority) (itsm_incident_open{env=\"$env\",service=~\"$service\"})","refId":"A","legendFormat":"{{priority}}"}],
-      "options": {"pieType":"donut","legend":{"displayMode":"table","placement":"right","values":["value","percent"]}}
+    { "id": 12, "type": "bargauge", "title": "SLA Compliance by Business Service",
+      "description": "Per-service SLA compliance %. Bars below target (95%) are candidates for immediate remediation.",
+      "gridPos": {"h":8,"w":12,"x":0,"y":15},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT service AS metric, 100.0 * SUM(CASE WHEN sla_breached=false THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM incidents WHERE env='${env}' AND $__timeFilter(created_at) GROUP BY 1 ORDER BY 2 ASC"}],
+      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}}
     },
-    {
-      "id": 12, "type": "bargauge", "title": "SLA Compliance by Business Service",
-      "gridPos": {"h":8,"w":12,"x":0,"y":14},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"avg by (service) (itsm_sla_compliance_ratio{env=\"$env\"}) * 100","refId":"A","legendFormat":"{{service}}"}],
-      "fieldConfig": {"defaults":{"unit":"percent","min":80,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}},
-      "options": {"orientation":"horizontal","displayMode":"gradient","showUnfilled":true}
+    { "id": 13, "type": "barchart", "title": "Incidents by Assignment Group (Open vs Closed)",
+      "description": "Distribution of tickets by resolver group. Highlights teams with high open counts (potential bottleneck).",
+      "gridPos": {"h":8,"w":12,"x":12,"y":15},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT assignment_group, SUM(CASE WHEN status NOT IN ('resolved','closed') THEN 1 ELSE 0 END) AS open, SUM(CASE WHEN status IN ('resolved','closed') THEN 1 ELSE 0 END) AS closed FROM incidents WHERE env='${env}' AND $__timeFilter(created_at) GROUP BY 1 ORDER BY open DESC"}]
     },
-    {
-      "id": 13, "type": "barchart", "title": "Incidents by Assignment Group (Open vs Closed)",
-      "gridPos": {"h":8,"w":12,"x":12,"y":14},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [
-        {"expr":"sum by (assignment_group) (itsm_incident_open{env=\"$env\"})","refId":"A","legendFormat":"Open"},
-        {"expr":"sum by (assignment_group) (increase(itsm_incident_resolved_total{env=\"$env\"}[30d]))","refId":"B","legendFormat":"Closed"}
-      ],
-      "options": {"orientation":"horizontal","stacking":"none","legend":{"displayMode":"list","placement":"bottom"}}
-    },
-    {
-      "id": 14, "type": "heatmap", "title": "Incident Aging Heatmap (Service x Age Bucket)",
-      "gridPos": {"h":8,"w":24,"x":0,"y":22},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum by (service, age_bucket) (itsm_incident_age_bucket{env=\"$env\"})","refId":"A","format":"heatmap"}],
-      "options": {"calculate":false,"color":{"mode":"scheme","scheme":"Oranges","steps":64}}
+    { "id": 14, "type": "heatmap", "title": "Incident Aging Heatmap (Service × Age Bucket)",
+      "description": "How long open incidents have been alive per service. Concentration in the 7-14d / >14d buckets indicates stale backlog.",
+      "gridPos": {"h":8,"w":24,"x":0,"y":23},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT service, CASE WHEN age_days < 1 THEN '<1d' WHEN age_days < 3 THEN '1-3d' WHEN age_days < 7 THEN '3-7d' WHEN age_days < 14 THEN '7-14d' ELSE '>14d' END AS bucket, COUNT(*) AS value FROM (SELECT service, EXTRACT(EPOCH FROM (NOW()-created_at))/86400.0 AS age_days FROM incidents WHERE env='${env}' AND status NOT IN ('resolved','closed')) t GROUP BY 1,2"}]
     },
 
-    {
-      "id": 1020, "type": "row", "title": "Change Management", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":30}, "panels": []
+    { "id": 1020, "type": "row", "title": "Change Management", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":31}, "panels": [] },
+
+    { "id": 20, "type": "stat", "title": "Change Success Rate",
+      "description": "Percentage of implemented changes that closed successfully (no rollback, no incident within 24h). Target ≥ 95%.",
+      "gridPos": {"h":5,"w":6,"x":0,"y":32},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN status='successful' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE env='${env}' AND $__timeFilter(actual_end)"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}}
     },
-    {
-      "id": 20, "type": "stat", "title": "Change Success Rate",
-      "gridPos": {"h":4,"w":6,"x":0,"y":31},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_change_success_total{env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}},
-      "options": {"colorMode":"background","graphMode":"area","reduceOptions":{"calcs":["lastNotNull"]}}
+    { "id": 21, "type": "stat", "title": "Failed Changes",
+      "description": "Count of failed / rolled-back changes in window. Directly correlates with change-induced incidents.",
+      "gridPos": {"h":5,"w":6,"x":6,"y":32},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM changes WHERE env='${env}' AND status='failed' AND $__timeFilter(actual_end)"}]
     },
-    {
-      "id": 21, "type": "stat", "title": "Failed Changes",
-      "gridPos": {"h":4,"w":6,"x":6,"y":31},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_change_failed_total{env=\"$env\"}[30d]))","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":50},{"color":"red","value":80}]}}}
-    },
-    {
-      "id": 22, "type": "stat", "title": "Emergency Change Rate",
-      "gridPos": {"h":4,"w":6,"x":12,"y":31},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_change_total{change_type=\"emergency\",env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
+    { "id": 22, "type": "stat", "title": "Emergency Change Rate",
+      "description": "Emergency changes as % of total changes. High rate (>5%) means CAB process is being bypassed too often.",
+      "gridPos": {"h":5,"w":6,"x":12,"y":32},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN change_type='emergency' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE env='${env}' AND $__timeFilter(created_at)"}],
       "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}}
     },
-    {
-      "id": 23, "type": "stat", "title": "CAB Approval Rate",
-      "gridPos": {"h":4,"w":6,"x":18,"y":31},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(itsm_change_cab_status{status=\"approved\",env=\"$env\"}) / sum(itsm_change_cab_status{env=\"$env\"}) * 100","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"percent"}}
+    { "id": 23, "type": "stat", "title": "CAB Approval Rate",
+      "description": "Share of changes approved by CAB vs total submitted. Low rate signals poor change quality or documentation.",
+      "gridPos": {"h":5,"w":6,"x":18,"y":32},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN cab_status='approved' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE env='${env}' AND $__timeFilter(created_at)"}]
     },
-    {
-      "id": 24, "type": "timeseries", "title": "Change Performance (12m)",
-      "gridPos": {"h":8,"w":16,"x":0,"y":35},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [
-        {"expr":"sum(increase(itsm_change_success_total{env=\"$env\"}[30d]))","refId":"A","legendFormat":"Successful"},
-        {"expr":"sum(increase(itsm_change_failed_total{env=\"$env\"}[30d]))","refId":"B","legendFormat":"Failed"},
-        {"expr":"sum(increase(itsm_change_total{change_type=\"emergency\",env=\"$env\"}[30d]))","refId":"C","legendFormat":"Emergency"}
-      ],
-      "fieldConfig": {"defaults":{"custom":{"drawStyle":"line","fillOpacity":10,"lineWidth":2}}}
+    { "id": 24, "type": "timeseries", "title": "Change Performance (12mo)",
+      "description": "Monthly successful / failed / emergency changes over 12 months. Trend view of change-management maturity.",
+      "gridPos": {"h":8,"w":16,"x":0,"y":37},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"time_series","rawSql":"SELECT date_trunc('month', actual_end) AS time, CASE WHEN change_type='emergency' THEN 'Emergency' WHEN status='failed' THEN 'Failed' WHEN status='successful' THEN 'Successful' ELSE 'Other' END AS metric, COUNT(*) AS value FROM changes WHERE env='${env}' AND actual_end >= NOW() - INTERVAL '12 months' GROUP BY 1,2 ORDER BY 1"}]
     },
-    {
-      "id": 25, "type": "piechart", "title": "CAB Decision Distribution",
-      "gridPos": {"h":8,"w":8,"x":16,"y":35},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum by (status) (itsm_change_cab_status{env=\"$env\"})","refId":"A","legendFormat":"{{status}}"}],
-      "options": {"pieType":"pie","legend":{"displayMode":"table","values":["value","percent"]}}
+    { "id": 25, "type": "piechart", "title": "CAB Decision Distribution",
+      "description": "Share of CAB decisions (approved / pending / rejected / deferred) in period.",
+      "gridPos": {"h":8,"w":8,"x":16,"y":37},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT cab_status AS metric, COUNT(*) AS value FROM changes WHERE env='${env}' AND $__timeFilter(created_at) GROUP BY 1"}]
     },
-    {
-      "id": 26, "type": "table", "title": "High-Risk Changes (Upcoming)",
-      "gridPos": {"h":8,"w":24,"x":0,"y":43},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"itsm_change_planned{risk=~\"High|Critical\",env=\"$env\"}","refId":"A","format":"table","instant":true}],
-      "options": {"showHeader":true,"cellHeight":"sm"},
-      "fieldConfig": {
-        "defaults": {"custom":{"align":"left"}},
-        "overrides": [
-          {"matcher":{"id":"byName","options":"risk"},"properties":[{"id":"custom.cellOptions","value":{"type":"color-background"}},{"id":"mappings","value":[{"type":"value","options":{"Critical":{"color":"red"},"High":{"color":"orange"},"Medium":{"color":"yellow"}}}]}]},
-          {"matcher":{"id":"byName","options":"change_id"},"properties":[{"id":"links","value":[{"title":"Open in Jira","url":"https://jira.example.com/browse/${__value.raw}","targetBlank":true}]}]}
-        ]
-      }
+    { "id": 26, "type": "table", "title": "High-Risk Changes (Upcoming)",
+      "description": "Planned changes with risk = High or Critical in next 7 days. Feed for CAB / weekend war-room.",
+      "gridPos": {"h":8,"w":24,"x":0,"y":45},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT change_id, title, risk, cab_status, planned_start AS window, owner FROM changes WHERE env='${env}' AND risk IN ('High','Critical') AND planned_start BETWEEN NOW() AND NOW() + INTERVAL '7 days' ORDER BY planned_start"}],
+      "fieldConfig": {"overrides":[{"matcher":{"id":"byName","options":"change_id"},"properties":[{"id":"links","value":[{"title":"Open in Jira","url":"https://jira.example.com/browse/${__value.raw}","targetBlank":true}]}]}]}
     },
 
-    {
-      "id": 1030, "type": "row", "title": "Configuration & Asset Management (CMDB)", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":51}, "panels": []
+    { "id": 1030, "type": "row", "title": "Configuration & Asset Management (CMDB)", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":53}, "panels": [] },
+
+    { "id": 30, "type": "stat", "title": "Active Assets",
+      "description": "Total CIs currently in Operate lifecycle stage.",
+      "gridPos": {"h":5,"w":4,"x":0,"y":54},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM assets WHERE env='${env}' AND lifecycle_stage='operate'"}]
     },
-    {
-      "id": 30, "type": "stat", "title": "Active Assets",
-      "gridPos": {"h":4,"w":6,"x":0,"y":52},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(cmdb_asset_active{env=\"$env\"})","refId":"A"}]
+    { "id": 31, "type": "stat", "title": "Critical Assets",
+      "description": "CIs classified as business-critical (Tier-1). These drive incident and SLA scoring.",
+      "gridPos": {"h":5,"w":4,"x":4,"y":54},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM assets WHERE env='${env}' AND criticality='critical'"}]
     },
-    {
-      "id": 31, "type": "stat", "title": "Critical Assets",
-      "gridPos": {"h":4,"w":6,"x":6,"y":52},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(cmdb_asset_active{criticality=\"critical\",env=\"$env\"})","refId":"A"}],
-      "fieldConfig": {"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"blue","value":null}]}}}
+    { "id": 32, "type": "gauge", "title": "CMDB Coverage %",
+      "description": "Share of production CIs with valid owner + lifecycle. Target ≥ 95% for a trusted CMDB.",
+      "gridPos": {"h":5,"w":4,"x":8,"y":54},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN team IS NOT NULL AND lifecycle_stage IS NOT NULL THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM assets WHERE env='${env}'"}],
+      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":90},{"color":"green","value":95}]}}}
     },
-    {
-      "id": 32, "type": "gauge", "title": "CMDB Coverage %",
-      "gridPos": {"h":4,"w":6,"x":12,"y":52},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"cmdb_coverage_ratio * 100","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"percent","min":0,"max":100,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}}
+    { "id": 33, "type": "stat", "title": "EOL Assets (60d)",
+      "description": "Assets reaching end-of-life in next 60 days. Must be replaced or extended-support contracted.",
+      "gridPos": {"h":5,"w":4,"x":12,"y":54},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COUNT(*) AS value FROM assets WHERE env='${env}' AND eol_date BETWEEN NOW() AND NOW() + INTERVAL '60 days'"}]
     },
-    {
-      "id": 33, "type": "stat", "title": "EOL Assets (60d)",
-      "gridPos": {"h":4,"w":6,"x":18,"y":52},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(cmdb_asset_eol_within_days{days=\"60\",env=\"$env\"})","refId":"A"}],
-      "fieldConfig": {"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":500},{"color":"red","value":800}]}}}
+    { "id": 34, "type": "piechart", "title": "Asset Lifecycle Distribution",
+      "description": "Plan / Deploy / Operate / Retire / EOL breakdown of the CI estate.",
+      "gridPos": {"h":8,"w":8,"x":0,"y":59},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT lifecycle_stage AS metric, COUNT(*) AS value FROM assets WHERE env='${env}' GROUP BY 1"}]
     },
-    {
-      "id": 34, "type": "piechart", "title": "Asset Lifecycle Distribution",
-      "gridPos": {"h":8,"w":12,"x":0,"y":56},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum by (stage) (cmdb_asset_lifecycle{env=\"$env\"})","refId":"A","legendFormat":"{{stage}}"}],
-      "options": {"pieType":"donut"}
-    },
-    {
-      "id": 35, "type": "barchart", "title": "Assets by Ownership Team",
-      "gridPos": {"h":8,"w":12,"x":12,"y":56},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum by (team) (cmdb_asset_active{env=\"$env\"})","refId":"A","legendFormat":"{{team}}"}],
-      "options": {"orientation":"horizontal"}
+    { "id": 35, "type": "barchart", "title": "Assets by Ownership Team",
+      "description": "CI count per owning team. Detects orphaned assets when team is null.",
+      "gridPos": {"h":8,"w":16,"x":8,"y":59},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT COALESCE(team,'(orphan)') AS team, COUNT(*) AS assets FROM assets WHERE env='${env}' GROUP BY 1 ORDER BY 2 DESC"}]
     },
 
-    {
-      "id": 1040, "type": "row", "title": "Executive Risk Dashboard", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":64}, "panels": []
-    },
-    {
-      "id": 40, "type": "heatmap", "title": "Operational Risk Heatmap (Service x Category)",
-      "gridPos": {"h":10,"w":14,"x":0,"y":65},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"itsm_risk_score{env=\"$env\"}","refId":"A","format":"heatmap"}],
+    { "id": 1040, "type": "row", "title": "Executive Risk Dashboard", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":67}, "panels": [] },
+
+    { "id": 40, "type": "heatmap", "title": "Operational Risk Heatmap (Service × Category)",
+      "description": "Latest risk score per service and risk category (Availability, Change, Security, Capacity, SLA, Vendor). Red = act now.",
+      "gridPos": {"h":10,"w":14,"x":0,"y":68},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT service, category, score AS value FROM risk_scores WHERE env='${env}' AND ts = (SELECT MAX(ts) FROM risk_scores)"}],
       "options": {"calculate":false,"color":{"mode":"scheme","scheme":"RdYlGn","reverse":true,"steps":64}}
     },
-    {
-      "id": 41, "type": "table", "title": "Top 10 Operational Risks",
-      "gridPos": {"h":10,"w":10,"x":14,"y":65},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"topk(10, itsm_risk_score{env=\"$env\"})","refId":"A","format":"table","instant":true}],
-      "fieldConfig": {
-        "defaults": {"custom":{"align":"left"}},
-        "overrides": [
-          {"matcher":{"id":"byName","options":"Value"},"properties":[{"id":"custom.cellOptions","value":{"type":"gauge","mode":"gradient"}},{"id":"max","value":100},{"id":"min","value":0},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":50},{"color":"red","value":75}]}}]}
-        ]
-      }
+    { "id": 41, "type": "table", "title": "Top 10 Operational Risks",
+      "description": "Highest-scored open risks. Feeds the Executive Risk Committee agenda.",
+      "gridPos": {"h":10,"w":10,"x":14,"y":68},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT rank() OVER (ORDER BY score DESC) AS rank, risk_title, service, score, trend FROM risk_register WHERE env='${env}' AND status='open' ORDER BY score DESC LIMIT 10"}]
     },
 
-    {
-      "id": 1050, "type": "row", "title": "2. IT Performance Management", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":75}, "panels": []
+    { "id": 1050, "type": "row", "title": "2. IT Performance Management", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":78}, "panels": [] },
+
+    { "id": 50, "type": "stat", "title": "Successful Change Rate",
+      "description": "% of changes closed as successful in period. Core ITIL v4 change-enablement KPI.",
+      "gridPos": {"h":5,"w":4,"x":0,"y":79},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN status='successful' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE env='${env}' AND $__timeFilter(actual_end)"}],
+      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}}
     },
-    {
-      "id": 50, "type": "stat", "title": "Successful Change Rate",
-      "gridPos": {"h":5,"w":4,"x":0,"y":76},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_change_success_total{env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"yellow","value":85},{"color":"green","value":95}]}}},
-      "options": {"colorMode":"background","graphMode":"area"}
-    },
-    {
-      "id": 51, "type": "stat", "title": "Repeated Incident Rate (Internal)",
-      "gridPos": {"h":5,"w":4,"x":4,"y":76},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(itsm_incident_repeated{source=\"internal\",env=\"$env\"}) / sum(itsm_incident_created_total{env=\"$env\"}) * 100","refId":"A"}],
+    { "id": 51, "type": "stat", "title": "Repeated Incident Rate (Internal)",
+      "description": "Recurring incidents from internal systems as % of all incidents. Signals unresolved root causes.",
+      "gridPos": {"h":5,"w":4,"x":4,"y":79},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN is_recurring AND source='internal' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM incidents WHERE env='${env}' AND $__timeFilter(created_at)"}],
       "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}}
     },
-    {
-      "id": 52, "type": "stat", "title": "Repeated Incident Rate (3rd Party)",
-      "gridPos": {"h":5,"w":4,"x":8,"y":76},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(itsm_incident_repeated{source=\"third_party\",env=\"$env\"}) / sum(itsm_incident_created_total{env=\"$env\"}) * 100","refId":"A"}],
-      "fieldConfig": {"defaults":{"unit":"percent"}}
+    { "id": 52, "type": "stat", "title": "Repeated Incident Rate (3rd Party)",
+      "description": "Recurring incidents from third-party services. Escalation trigger for vendor governance.",
+      "gridPos": {"h":5,"w":4,"x":8,"y":79},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN is_recurring AND source='third_party' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM incidents WHERE env='${env}' AND $__timeFilter(created_at)"}]
     },
-    {
-      "id": 53, "type": "stat", "title": "Emergency Change Rate",
-      "gridPos": {"h":5,"w":4,"x":12,"y":76},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [{"expr":"sum(increase(itsm_change_total{change_type=\"emergency\",env=\"$env\"}[30d])) / sum(increase(itsm_change_total{env=\"$env\"}[30d])) * 100","refId":"A"}],
+    { "id": 53, "type": "stat", "title": "Emergency Change Rate",
+      "description": "Emergency change share. Target < 5%. Above 10% = process failure.",
+      "gridPos": {"h":5,"w":4,"x":12,"y":79},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT 100.0 * SUM(CASE WHEN change_type='emergency' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0) AS value FROM changes WHERE env='${env}' AND $__timeFilter(created_at)"}],
       "fieldConfig": {"defaults":{"unit":"percent","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}]}}}
     },
-    {
-      "id": 54, "type": "stat", "title": "MTTD (auto/manual, min)",
-      "gridPos": {"h":5,"w":4,"x":16,"y":76},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
-      "targets": [
-        {"expr":"avg(itsm_mttd_minutes{detection=\"auto\",env=\"$env\"})","refId":"A","legendFormat":"Auto"},
-        {"expr":"avg(itsm_mttd_minutes{detection=\"manual\",env=\"$env\"})","refId":"B","legendFormat":"Manual"}
-      ],
+    { "id": 54, "type": "stat", "title": "MTTD (Auto vs Manual, min)",
+      "description": "Mean Time To Detect. Auto = monitoring detection (PRTG/Zabbix). Manual = user-reported. Auto should be < 5 min.",
+      "gridPos": {"h":5,"w":4,"x":16,"y":79},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
+      "targets": [{"refId":"A","format":"table","rawSql":"SELECT detection_type AS metric, AVG(EXTRACT(EPOCH FROM (detected_at - created_at))/60.0) AS value FROM incidents WHERE env='${env}' AND detected_at IS NOT NULL AND $__timeFilter(created_at) GROUP BY 1"}],
       "fieldConfig": {"defaults":{"unit":"m","thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":10},{"color":"red","value":20}]}}}
     },
-    {
-      "id": 55, "type": "stat", "title": "MTTA / MTTR (WH vs NH)",
-      "gridPos": {"h":5,"w":4,"x":20,"y":76},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
+    { "id": 55, "type": "stat", "title": "MTTA / MTTR (WH vs NH)",
+      "description": "Mean Time To Acknowledge (min) and Mean Time To Resolve (h), split Working Hours vs Non-Working Hours.",
+      "gridPos": {"h":5,"w":4,"x":20,"y":79},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
       "targets": [
-        {"expr":"avg(itsm_mtta_minutes{hours=\"working\",env=\"$env\"})","refId":"A","legendFormat":"MTTA WH (m)"},
-        {"expr":"avg(itsm_mtta_minutes{hours=\"non_working\",env=\"$env\"})","refId":"B","legendFormat":"MTTA NH (m)"},
-        {"expr":"avg(itsm_mttr_hours{hours=\"working\",env=\"$env\"})","refId":"C","legendFormat":"MTTR WH (h)"},
-        {"expr":"avg(itsm_mttr_hours{hours=\"non_working\",env=\"$env\"})","refId":"D","legendFormat":"MTTR NH (h)"}
+        {"refId":"A","format":"table","rawSql":"SELECT 'MTTA '||hours_bucket AS metric, AVG(EXTRACT(EPOCH FROM (first_response_at - created_at))/60.0) AS value FROM incidents WHERE env='${env}' AND first_response_at IS NOT NULL AND $__timeFilter(created_at) GROUP BY hours_bucket"},
+        {"refId":"B","format":"table","rawSql":"SELECT 'MTTR '||hours_bucket AS metric, AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600.0) AS value FROM incidents WHERE env='${env}' AND resolved_at IS NOT NULL AND $__timeFilter(created_at) GROUP BY hours_bucket"}
       ]
     },
 
-    {
-      "id": 1060, "type": "row", "title": "Trend Analysis - Core Banking & Card Systems", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":81}, "panels": []
-    },
-    {
-      "id": 60, "type": "timeseries", "title": "Core Banking - Incident / Change / SLA / MTTR",
-      "gridPos": {"h":9,"w":12,"x":0,"y":82},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
+    { "id": 1060, "type": "row", "title": "Trend Analysis - Core Banking & Card Systems", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":84}, "panels": [] },
+
+    { "id": 60, "type": "timeseries", "title": "Core Banking - Incident / Change / SLA / MTTR",
+      "description": "Daily volumes and quality KPIs for Core Banking family (Accounts, Payments, Ledger).",
+      "gridPos": {"h":9,"w":12,"x":0,"y":85},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
       "targets": [
-        {"expr":"sum(increase(itsm_incident_created_total{service=~\"Core Banking.*\"}[1d]))","refId":"A","legendFormat":"Incidents"},
-        {"expr":"sum(increase(itsm_change_total{service=~\"Core Banking.*\"}[1d]))","refId":"B","legendFormat":"Changes"},
-        {"expr":"avg(itsm_sla_compliance_ratio{service=~\"Core Banking.*\"}) * 100","refId":"C","legendFormat":"SLA %"},
-        {"expr":"avg(itsm_mttr_hours{service=~\"Core Banking.*\"})","refId":"D","legendFormat":"MTTR (h)"}
+        {"refId":"A","format":"time_series","rawSql":"SELECT date_trunc('day', created_at) AS time, 'Incidents' AS metric, COUNT(*) AS value FROM incidents WHERE service LIKE 'Core Banking%' AND $__timeFilter(created_at) GROUP BY 1"},
+        {"refId":"B","format":"time_series","rawSql":"SELECT date_trunc('day', actual_end) AS time, 'Changes' AS metric, COUNT(*) AS value FROM changes WHERE service LIKE 'Core Banking%' AND $__timeFilter(actual_end) GROUP BY 1"},
+        {"refId":"C","format":"time_series","rawSql":"SELECT ts AS time, 'SLA %' AS metric, compliance_pct AS value FROM sla_metrics WHERE service LIKE 'Core Banking%' AND $__timeFilter(ts)"},
+        {"refId":"D","format":"time_series","rawSql":"SELECT date_trunc('day', resolved_at) AS time, 'MTTR (h)' AS metric, AVG(EXTRACT(EPOCH FROM (resolved_at-created_at))/3600.0) AS value FROM incidents WHERE service LIKE 'Core Banking%' AND resolved_at IS NOT NULL AND $__timeFilter(resolved_at) GROUP BY 1"}
       ]
     },
-    {
-      "id": 61, "type": "timeseries", "title": "Card Systems - Incident / Change / SLA / MTTR",
-      "gridPos": {"h":9,"w":12,"x":12,"y":82},
-      "datasource": {"type":"prometheus","uid":"${datasource}"},
+    { "id": 61, "type": "timeseries", "title": "Card Systems - Incident / Change / SLA / MTTR",
+      "description": "Daily volumes and quality KPIs for Card family (Auth Switch, Issuance, ATM).",
+      "gridPos": {"h":9,"w":12,"x":12,"y":85},
+      "datasource": {"type":"postgres","uid":"${datasource}"},
       "targets": [
-        {"expr":"sum(increase(itsm_incident_created_total{service=~\"Card.*\"}[1d]))","refId":"A","legendFormat":"Incidents"},
-        {"expr":"sum(increase(itsm_change_total{service=~\"Card.*\"}[1d]))","refId":"B","legendFormat":"Changes"},
-        {"expr":"avg(itsm_sla_compliance_ratio{service=~\"Card.*\"}) * 100","refId":"C","legendFormat":"SLA %"},
-        {"expr":"avg(itsm_mttr_hours{service=~\"Card.*\"})","refId":"D","legendFormat":"MTTR (h)"}
+        {"refId":"A","format":"time_series","rawSql":"SELECT date_trunc('day', created_at) AS time, 'Incidents' AS metric, COUNT(*) AS value FROM incidents WHERE (service LIKE 'Card%' OR service='ATM Network') AND $__timeFilter(created_at) GROUP BY 1"},
+        {"refId":"B","format":"time_series","rawSql":"SELECT date_trunc('day', actual_end) AS time, 'Changes' AS metric, COUNT(*) AS value FROM changes WHERE (service LIKE 'Card%' OR service='ATM Network') AND $__timeFilter(actual_end) GROUP BY 1"},
+        {"refId":"C","format":"time_series","rawSql":"SELECT ts AS time, 'SLA %' AS metric, compliance_pct AS value FROM sla_metrics WHERE (service LIKE 'Card%' OR service='ATM Network') AND $__timeFilter(ts)"},
+        {"refId":"D","format":"time_series","rawSql":"SELECT date_trunc('day', resolved_at) AS time, 'MTTR (h)' AS metric, AVG(EXTRACT(EPOCH FROM (resolved_at-created_at))/3600.0) AS value FROM incidents WHERE (service LIKE 'Card%' OR service='ATM Network') AND resolved_at IS NOT NULL AND $__timeFilter(resolved_at) GROUP BY 1"}
       ]
     },
 
-    {
-      "id": 1070, "type": "row", "title": "Executive Insights (Automated)", "collapsed": false,
-      "gridPos": {"h":1,"w":24,"x":0,"y":91}, "panels": []
-    },
-    {
-      "id": 70, "type": "text", "title": "Board-Level Insights",
-      "gridPos": {"h":10,"w":24,"x":0,"y":92},
+    { "id": 1070, "type": "row", "title": "Executive Insights (Automated)", "collapsed": false, "gridPos": {"h":1,"w":24,"x":0,"y":94}, "panels": [] },
+    { "id": 70, "type": "text", "title": "Board-Level Insights",
+      "description": "Auto-generated commentary from rule engine (SLA breach risk, recurring incidents, high-risk assets, CAB priorities).",
+      "gridPos": {"h":10,"w":24,"x":0,"y":95},
       "options": {
         "mode": "markdown",
-        "content": "### Key Insights (auto-generated)\n\n- **MTTD (manual) trending up** — +6% MoM in Channels; expand PRTG to Mobile Banking edge nodes.\n- **MTTR improved on Core Banking** — -12% QoQ post ledger-reconciliation runbook automation.\n- **Card Issuance emergency changes exceed threshold** — 8 in last 30d (target ≤ 3). Investigate CAB bypass.\n- **SLA breach risk – SWIFT Gateway** — 3x P2 open >6h; escalate to Middleware on-call.\n- **Recurring incidents – Mobile Banking login** — 14 in 30d; open PRB with App Support.\n- **High operational risk – SWIFT MQ SPOF** — prioritize CHG-40244 at next CAB.\n\n### CAB Priorities\n1. CHG-40244 - SWIFT MQ HA\n2. Card Auth Switch capacity refresh (target 40% headroom)\n3. Core Banking Ledger DR test before Q-end\n4. TLS cert renewal - Internet Banking (28d)"
+        "content": "### Key Insights (auto-generated)\n\n- **MTTD (manual) trending up** — +6% MoM in Channels; expand PRTG to Mobile Banking edge nodes.\n- **MTTR improved on Core Banking** — -12% QoQ post ledger-reconciliation runbook automation.\n- **Card Issuance emergency changes exceed threshold** — 8 in last 30d (target ≤ 3).\n- **SLA breach risk – SWIFT Gateway** — 3x P2 open >6h; escalate to Middleware on-call.\n- **Recurring incidents – Mobile Banking login** — 14 in 30d; open PRB with App Support.\n- **High operational risk – SWIFT MQ SPOF** — prioritize CHG-40244 at next CAB.\n\n### CAB Priorities\n1. CHG-40244 - SWIFT MQ HA\n2. Card Auth Switch capacity refresh (target 40% headroom)\n3. Core Banking Ledger DR test before Q-end\n4. TLS cert renewal - Internet Banking (28d)"
       }
     }
   ]

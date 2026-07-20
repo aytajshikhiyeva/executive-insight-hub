@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Activity, AlertTriangle, Bell, Boxes, Download, GitPullRequestArrow, LayoutDashboard, ListTree,
+  Activity, AlertTriangle, Bell, Boxes, Download, FileText, GitPullRequestArrow, LayoutDashboard, ListTree,
   RefreshCw, Shield, Sparkles, TrendingUp,
 } from "lucide-react";
 
@@ -13,6 +13,7 @@ import {
   PerformanceSection, TrendAnalysisSection, InsightsSection,
 } from "@/components/itsm/sections";
 import { AlertingSection } from "@/components/itsm/alerting";
+import { ReportsSection } from "@/components/itsm/reports";
 
 
 export const Route = createFileRoute("/")({
@@ -39,6 +40,7 @@ const NAV = [
   { id: "trends", label: "Trend Analysis", icon: TrendingUp },
   { id: "insights", label: "Executive Insights", icon: Sparkles },
   { id: "alerting", label: "Alerting", icon: Bell },
+  { id: "reports", label: "Reports", icon: FileText },
 ] as const;
 
 
@@ -115,6 +117,7 @@ function DashboardPage() {
             {tab === "trends" && <TrendAnalysisSection />}
             {tab === "insights" && <InsightsSection />}
             {tab === "alerting" && <AlertingSection />}
+            {tab === "reports" && <ReportsSection />}
 
           </div>
           <footer className="border-t border-border px-4 lg:px-6 py-3 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
