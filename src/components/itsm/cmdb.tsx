@@ -336,15 +336,15 @@ const LAYER_ORDER = ["business_service", "sub_business_service", "system", "it_c
 const layerOf = (c: CI) => (isTech(c) ? 4 : LAYER_ORDER.indexOf(c.ci_class));
 const LAYER_COLOR = ["var(--color-primary)", "var(--color-info)", "var(--color-success)", "var(--color-warning)", "var(--color-muted-foreground)"];
 
-function ZoomPan({ children, width, height }: { children: ReactNode; width: number; height: number }) {
-  const [t, setT] = useState({ x: 20, y: 20, k: 0.8 });
+function ZoomPan({ children, width, height, k0 = 0.9 }: { children: ReactNode; width: number; height: number; k0?: number }) {
+  const [t, setT] = useState({ x: 40, y: 30, k: k0 });
   const drag = useRef<{ x: number; y: number } | null>(null);
   return (
     <div className="relative">
       <div className="absolute right-2 top-2 z-10 flex gap-1">
         <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setT({ ...t, k: t.k * 1.2 })}><ZoomIn className="h-3.5 w-3.5" /></Button>
         <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setT({ ...t, k: t.k / 1.2 })}><ZoomOut className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setT({ x: 20, y: 20, k: 0.8 })}><Maximize2 className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setT({ x: 40, y: 30, k: k0 })}><Maximize2 className="h-3.5 w-3.5" /></Button>
       </div>
       <svg
         className="w-full h-[560px] rounded border border-border bg-background touch-none cursor-grab"
@@ -353,9 +353,8 @@ function ZoomPan({ children, width, height }: { children: ReactNode; width: numb
         onPointerMove={(e) => drag.current && setT({ ...t, x: e.clientX - drag.current.x, y: e.clientY - drag.current.y })}
         onPointerUp={() => (drag.current = null)}
         onPointerLeave={() => (drag.current = null)}
-        viewBox={`0 0 ${Math.max(width, 800)} 560`}
       >
-        <g transform={`translate(${t.x},${t.y}) scale(${t.k})`} data-h={height}>{children}</g>
+        <g transform={`translate(${t.x},${t.y}) scale(${t.k})`} data-w={width} data-h={height}>{children}</g>
       </svg>
     </div>
   );
@@ -370,7 +369,7 @@ function DependencyGraph({ m, onExplore }: Act) {
   const { nodes, edges, w, h } = useMemo(() => {
     const hidden = new Set<string>();
     collapsed.forEach((id) => m.walk(id, "down", ["business"]).forEach((x) => hidden.add(x.ci.id)));
-    const base = m.cis.filter((c) => layerOf(c) >= 0 && !hidden.has(c.id) && (crit === "all" || c.criticality === crit));
+    const base = m.cis.filter((c) => layerOf(c) >= 0 && !c.device_role && !hidden.has(c.id) && (crit === "all" || c.criticality === crit));
     const cols: CI[][] = [[], [], [], [], []];
     base.forEach((c) => cols[layerOf(c)].push(c));
     const pos = new Map<string, { x: number; y: number; c: CI }>();
@@ -529,7 +528,7 @@ function NetworkView({ m, onExplore }: Act) {
       <div className="grid lg:grid-cols-[1fr_300px] gap-4">
         <Panel title="Dynamic Network Topology" info="Tiers derived from each device's CMDB network role; links from L2/L3 relationships. Any CMDB change re-renders automatically."
           actions={<div className="flex gap-1">{(["all", "l2", "l3"] as const).map((l) => <Button key={l} size="sm" variant={layer === l ? "default" : "outline"} className="h-7 text-xs" onClick={() => setLayer(l)}>{l.toUpperCase()}</Button>)}</div>}>
-          <ZoomPan width={w} height={640}>
+          <ZoomPan width={w} height={640} k0={0.75}>
             {ROLE_LABEL.map((l, t) => t !== 6 && <text key={l} x={-10} y={t * 80 - 6} fontSize={10} fill="var(--color-muted-foreground)">{l}</text>)}
             {edges.map((e) => {
               const a = P.get(e.source_id)!, b = P.get(e.target_id)!;
