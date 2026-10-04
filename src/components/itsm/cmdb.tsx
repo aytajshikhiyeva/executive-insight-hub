@@ -21,7 +21,7 @@ const critTone: Record<string, string> = {
 };
 const Crit = ({ v }: { v: string }) => <Badge className={`border-0 ${critTone[v] ?? ""}`}>{v}</Badge>;
 const fmt = (n: number) => `${n.toFixed(1)}%`;
-const tone = (n: number) => (n >= 95 ? "success" : n >= 85 ? "warning" : "danger") as const;
+const tone = (n: number): "success" | "warning" | "danger" => (n >= 95 ? "success" : n >= 85 ? "warning" : "danger");
 
 export function CmdbSection() {
   const { model, isLoading, error } = useCmdb();
