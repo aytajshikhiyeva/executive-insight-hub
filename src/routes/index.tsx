@@ -5,7 +5,6 @@ import {
   RefreshCw, Shield, Sparkles, TrendingUp,
 } from "lucide-react";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,9 +48,6 @@ type TabId = (typeof NAV)[number]["id"];
 
 function DashboardPage() {
   const [tab, setTab] = useState<TabId>("overview");
-  const [range, setRange] = useState("30d");
-  const [service, setService] = useState("all");
-  const [severity, setSeverity] = useState("all");
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
@@ -84,12 +80,6 @@ function DashboardPage() {
         </aside>
 
         <main className="flex-1 min-w-0">
-          <FilterBar
-            range={range} setRange={setRange}
-            service={service} setService={setService}
-            severity={severity} setSeverity={setSeverity}
-          />
-
           {/* mobile nav */}
           <div className="lg:hidden overflow-x-auto border-b border-border bg-[color:var(--color-sidebar)]">
             <div className="flex gap-1 px-2 py-2">
@@ -167,34 +157,3 @@ function TopBar() {
   );
 }
 
-function FilterBar(props: {
-  range: string; setRange: (v: string) => void;
-  service: string; setService: (v: string) => void;
-  severity: string; setSeverity: (v: string) => void;
-}) {
-  const Item = ({ label, value, onChange, options }: any) => (
-    <div className="flex flex-col gap-1">
-      <span className="grafana-title">{label}</span>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-8 w-[160px] text-xs bg-panel"><SelectValue /></SelectTrigger>
-        <SelectContent>{options.map((o: any) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
-      </Select>
-    </div>
-  );
-  return (
-    <div className="border-b border-border bg-[color:var(--color-panel)]/60 px-4 py-2 flex flex-wrap gap-3 items-end">
-      <Item label="Date Range" value={props.range} onChange={props.setRange}
-        options={[{v:"24h",l:"Last 24h"},{v:"7d",l:"Last 7 days"},{v:"30d",l:"Last 30 days"},{v:"90d",l:"Last quarter"},{v:"365d",l:"Last year"}]} />
-      <Item label="Business Service" value={props.service} onChange={props.setService}
-        options={[{v:"all",l:"All Services"},{v:"core",l:"Core Banking"},{v:"card",l:"Card Systems"},{v:"channels",l:"Channels"},{v:"treasury",l:"Treasury"}]} />
-      <Item label="Priority" value={props.severity} onChange={props.setSeverity}
-        options={[{v:"all",l:"All Priorities"},{v:"p1",l:"P1 - Critical"},{v:"p2",l:"P2 - High"},{v:"p3",l:"P3 - Medium"},{v:"p4",l:"P4 - Low"}]} />
-      <Item label="Environment" value="prod" onChange={()=>{}}
-        options={[{v:"prod",l:"Production"},{v:"uat",l:"UAT"},{v:"dr",l:"DR"},{v:"dev",l:"Development"}]} />
-      <Item label="Change Type" value="all" onChange={()=>{}}
-        options={[{v:"all",l:"All Types"},{v:"std",l:"Standard"},{v:"norm",l:"Normal"},{v:"emerg",l:"Emergency"}]} />
-      <Item label="Assignment Group" value="all" onChange={()=>{}}
-        options={[{v:"all",l:"All Groups"},{v:"core",l:"Core Banking Ops"},{v:"card",l:"Card Systems"},{v:"3p",l:"3rd Party"}]} />
-    </div>
-  );
-}
