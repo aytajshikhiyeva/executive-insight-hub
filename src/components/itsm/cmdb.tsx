@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Panel, Stat } from "./Panel";
 import { AssetSection } from "./sections";
+import { SbsDependencyGraph } from "./sbs-graph";
 import { CLASS_LABEL, hasOwner, isTech, ownerStatus, updateOwners, useCmdb, type CI, type Model } from "@/lib/cmdb";
 
 const critTone: Record<string, string> = {
@@ -19,7 +20,7 @@ const critTone: Record<string, string> = {
   Medium: "bg-[color:var(--color-info)]/20 text-[color:var(--color-info)]",
   Low: "bg-muted text-muted-foreground",
 };
-const Crit = ({ v }: { v: string }) => <Badge className={`border-0 ${critTone[v] ?? ""}`}>{v}</Badge>;
+export const Crit = ({ v }: { v: string }) => <Badge className={`border-0 ${critTone[v] ?? ""}`}>{v}</Badge>;
 const fmt = (n: number) => `${n.toFixed(1)}%`;
 const tone = (n: number): "success" | "warning" | "danger" => (n >= 95 ? "success" : n >= 85 ? "warning" : "danger");
 
@@ -43,6 +44,7 @@ export function CmdbSection() {
             <TabsTrigger value="unowned">Assets Without Owners</TabsTrigger>
             <TabsTrigger value="mapping">Business → Technology</TabsTrigger>
             <TabsTrigger value="graph">Dependency Graph</TabsTrigger>
+            <TabsTrigger value="sbsgraph">Sub-Service Dependencies</TabsTrigger>
             <TabsTrigger value="coverage">Mapping Coverage</TabsTrigger>
             <TabsTrigger value="network">Network L2 / L3</TabsTrigger>
             <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
@@ -54,6 +56,7 @@ export function CmdbSection() {
         <TabsContent value="unowned"><Unowned m={model} {...actions} typeFilter={drillType} setTypeFilter={setDrillType} /></TabsContent>
         <TabsContent value="mapping"><Hierarchy m={model} {...actions} /></TabsContent>
         <TabsContent value="graph"><DependencyGraph m={model} {...actions} /></TabsContent>
+        <TabsContent value="sbsgraph"><SbsDependencyGraph m={model} onExplore={actions.onExplore} /></TabsContent>
         <TabsContent value="coverage"><Coverage m={model} {...actions} /></TabsContent>
         <TabsContent value="network"><NetworkView m={model} {...actions} /></TabsContent>
         <TabsContent value="lifecycle"><AssetSection /></TabsContent>
@@ -75,7 +78,7 @@ function RowActions({ c, onExplore, onAssign }: { c: CI } & Omit<Act, "m">) {
   );
 }
 
-function Table({ head, children }: { head: string[]; children: ReactNode }) {
+export function Table({ head, children }: { head: string[]; children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
@@ -85,18 +88,18 @@ function Table({ head, children }: { head: string[]; children: ReactNode }) {
     </div>
   );
 }
-const Td = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
+export const Td = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
   <td className={`px-2 py-1.5 border-b border-border/50 whitespace-nowrap ${className}`}>{children ?? <span className="text-muted-foreground">—</span>}</td>
 );
 
-function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+export function FilterSelect({ label, value, onChange, options, noAll }: { label: string; value: string; onChange: (v: string) => void; options: string[]; noAll?: boolean }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="grafana-title">{label}</span>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All</SelectItem>
+          {!noAll && <SelectItem value="all">All</SelectItem>}
           {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -337,7 +340,7 @@ const LAYER_ORDER = ["business_service", "sub_business_service", "system", "tech
 const layerOf = (c: CI) => (isTech(c) ? 3 : LAYER_ORDER.indexOf(c.ci_class));
 const LAYER_COLOR = ["var(--color-primary)", "var(--color-info)", "var(--color-success)", "var(--color-warning)"];
 
-function ZoomPan({ children, width, height, k0 = 0.9 }: { children: ReactNode; width: number; height: number; k0?: number }) {
+export function ZoomPan({ children, width, height, k0 = 0.9 }: { children: ReactNode; width: number; height: number; k0?: number }) {
   const [t, setT] = useState({ x: 40, y: 30, k: k0 });
   const drag = useRef<{ x: number; y: number } | null>(null);
   return (
