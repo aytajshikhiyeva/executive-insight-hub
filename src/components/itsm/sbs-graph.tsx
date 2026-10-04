@@ -207,7 +207,7 @@ export function SbsDependencyGraph({ m, onExplore }: { m: Model; onExplore: (c: 
           <Table head={["Asset", "Type", "# Sub-Services", "Systems", "Criticality", "Owner", "Capacity"]}>
             {shared.map(({ t, sbs }) => (
               <tr key={t.id} className="cursor-pointer" onClick={() => setSelId(t.id)}>
-                <Td className="font-medium">{t.name}</Td><Td>{typeLabel(t)}</Td><Td title={sbs.join(", ")}>{sbs.length}</Td>
+                <Td className="font-medium">{t.name}</Td><Td>{typeLabel(t)}</Td><Td>{sbs.length}</Td>
                 <Td>{m.ctx.get(t.id)!.systems.join(", ")}</Td><Td><Crit v={t.criticality} /></Td>
                 <Td>{t.technical_owner ?? t.business_owner ?? "—"}</Td><Td><span style={{ color: capColor[capStatus(t)] }}>{capStatus(t)}</span></Td>
               </tr>
