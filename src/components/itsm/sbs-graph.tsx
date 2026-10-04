@@ -159,7 +159,7 @@ export function SbsDependencyGraph({ m, onExplore }: { m: Model; onExplore: (c: 
             {["Healthy", "Warning", "Critical"].map((s) => <span key={s} className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: capColor[s] }} />Capacity {s}</span>)}
             {["server", "vm", "database", "storage", "middleware", "cloud", "network_device"].map((k) => <span key={k} className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: TYPE_COLOR[k] }} />{CLASS_LABEL[k]}</span>)}
           </div>
-          <ZoomPan width={cols.size * CG} height={maxRows * RG} k0={0.55}>
+          <ZoomPan width={cols.size * CG} height={maxRows * RG} k0={0.42}>
             {edges.map((e) => {
               const a = pos.get(e.source_id)!, b = pos.get(e.target_id)!;
               const on = !sel || (hl.has(e.source_id) && hl.has(e.target_id));
