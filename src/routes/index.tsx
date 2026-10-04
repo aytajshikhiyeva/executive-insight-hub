@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import {
+  Activity, AlertTriangle, Bell, Boxes, Download, FileText, GitPullRequestArrow, LayoutDashboard, ListTree,
+  RefreshCw, Shield, Sparkles, TrendingUp,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
