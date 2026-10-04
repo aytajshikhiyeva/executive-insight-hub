@@ -363,20 +363,60 @@ function ZoomPan({ children, width, height, k0 = 0.9 }: { children: ReactNode; w
 function DependencyGraph({ m, onExplore }: Act) {
   const [q, setQ] = useState("");
   const [crit, setCrit] = useState("all");
+  const [bsF, setBsF] = useState("all");
+  const [sbsF, setSbsF] = useState("all");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState<CI | null>(null);
 
-  const { nodes, edges, w, h } = useMemo(() => {
+  const bsList = useMemo(() => m.cis.filter((c) => c.ci_class === "business_service"), [m]);
+  const sbsOptions = useMemo(() => {
+    const all = m.cis.filter((c) => c.ci_class === "sub_business_service");
+    if (bsF === "all") return all.map((c) => c.name);
+    const bs = bsList.find((b) => b.name === bsF);
+    return bs ? m.children(bs.id).filter((c) => c.ci_class === "sub_business_service").map((c) => c.name) : [];
+  }, [m, bsF, bsList]);
+
+  const { nodes, edges, groups, w, h } = useMemo(() => {
     const hidden = new Set<string>();
     collapsed.forEach((id) => m.walk(id, "down", ["business"]).forEach((x) => hidden.add(x.ci.id)));
-    const base = m.cis.filter((c) => layerOf(c) >= 0 && !c.device_role && !hidden.has(c.id) && (crit === "all" || c.criticality === crit));
-    const cols: CI[][] = [[], [], [], [], []];
-    base.forEach((c) => cols[layerOf(c)].push(c));
+    const ok = (c: CI) => layerOf(c) >= 0 && !c.device_role && !hidden.has(c.id) && (crit === "all" || c.criticality === crit);
+    const down = (id: string) => [id, ...m.walk(id, "down", ["business"]).map((x) => x.ci.id)];
+
+    // Build groups per business service, honouring BS / SBS filters
+    const sbsSel = sbsF !== "all" ? m.cis.find((c) => c.ci_class === "sub_business_service" && c.name === sbsF) : null;
+    const groupDefs: { label: string; ids: string[] }[] = [];
+    for (const bs of bsList) {
+      if (bsF !== "all" && bs.name !== bsF) continue;
+      if (sbsSel) {
+        if (!m.children(bs.id).some((k) => k.id === sbsSel.id)) continue;
+        groupDefs.push({ label: bs.name, ids: [bs.id, ...down(sbsSel.id)] });
+      } else groupDefs.push({ label: bs.name, ids: down(bs.id) });
+    }
+    if (bsF === "all" && !sbsSel) {
+      const covered = new Set(groupDefs.flatMap((g) => g.ids));
+      const rest = m.cis.filter((c) => !covered.has(c.id)).map((c) => c.id);
+      if (rest.length) groupDefs.push({ label: "Not mapped to a Business Service", ids: rest });
+    }
+
     const pos = new Map<string, { x: number; y: number; c: CI }>();
-    cols.forEach((col, i) => col.forEach((c, j) => pos.set(c.id, { x: i * 260, y: j * 34, c })));
+    const groups: { label: string; y: number; h: number; count: number }[] = [];
+    let y0 = 0;
+    for (const g of groupDefs) {
+      const cols: CI[][] = [[], [], [], [], []];
+      g.ids.forEach((id) => {
+        const c = m.byId.get(id);
+        if (c && ok(c) && !pos.has(id)) cols[layerOf(c)].push(c);
+      });
+      const rows = Math.max(...cols.map((c) => c.length));
+      if (!rows) continue;
+      cols.forEach((col, i) => col.forEach((c, j) => pos.set(c.id, { x: i * 260, y: y0 + 30 + j * 34, c })));
+      const gh = 30 + rows * 34 + 10;
+      groups.push({ label: g.label, y: y0, h: gh, count: cols.flat().length });
+      y0 += gh + 24;
+    }
     const edges = m.rels.filter((r) => r.layer === "business" && pos.has(r.source_id) && pos.has(r.target_id));
-    return { nodes: [...pos.values()], edges, w: 5 * 260 + 220, h: Math.max(...cols.map((c) => c.length)) * 34 };
-  }, [m, collapsed, crit]);
+    return { nodes: [...pos.values()], edges, groups, w: 5 * 260 + 220, h: y0 };
+  }, [m, collapsed, crit, bsF, sbsF, bsList]);
 
   const ql = q.toLowerCase();
   const related = sel ? new Set([sel.id, ...m.walk(sel.id, "up", ["business"]).map((x) => x.ci.id), ...m.walk(sel.id, "down", ["business"]).map((x) => x.ci.id)]) : null;
@@ -388,6 +428,8 @@ function DependencyGraph({ m, onExplore }: Act) {
         <div className="flex flex-wrap gap-2 mb-3 items-end">
           <div className="relative"><Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search nodes" className="h-8 pl-7 w-56 text-xs" /></div>
+          <FilterSelect label="Business Service" value={bsF} onChange={(v) => { setBsF(v); setSbsF("all"); }} options={bsList.map((b) => b.name)} />
+          <FilterSelect label="Sub-Business Service" value={sbsF} onChange={setSbsF} options={sbsOptions} />
           <FilterSelect label="Criticality" value={crit} onChange={setCrit} options={["Critical", "High", "Medium", "Low"]} />
           <Button size="sm" variant="outline" className="h-8" onClick={() => setCollapsed(new Set())}>Expand all</Button>
           <Button size="sm" variant="outline" className="h-8" onClick={() => setCollapsed(new Set(m.cis.filter((c) => c.ci_class === "system").map((c) => c.id)))}>Collapse systems</Button>
@@ -397,7 +439,13 @@ function DependencyGraph({ m, onExplore }: Act) {
             <span key={l} className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: LAYER_COLOR[i] }} />{l}</span>
           ))}
         </div>
-        <ZoomPan width={w} height={h}>
+        <ZoomPan width={w} height={h} k0={0.6}>
+          {groups.map((g) => (
+            <g key={g.label} transform={`translate(-12,${g.y})`}>
+              <rect width={w - 20} height={g.h} rx={8} fill="var(--color-primary)" fillOpacity={0.05} stroke="var(--color-primary)" strokeOpacity={0.35} strokeDasharray="4 4" />
+              <text x={12} y={19} fontSize={13} fontWeight={600} fill="var(--color-primary)">{g.label} · {g.count} CIs</text>
+            </g>
+          ))}
           {edges.map((e) => {
             const a = P.get(e.source_id)!, b = P.get(e.target_id)!;
             const on = !related || (related.has(a.c.id) && related.has(b.c.id));
