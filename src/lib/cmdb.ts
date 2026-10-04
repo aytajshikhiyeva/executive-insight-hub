@@ -118,7 +118,7 @@ export function buildModel(cis: CI[], rels: Rel[]) {
       businessServices: pick("business_service"),
       subServices: pick("sub_business_service"),
       systems: pick("system"),
-      components: pick("it_component"),
+      technology: up.filter(isTech).map((c) => c.name),
     };
   };
   const ctx = new Map(cis.map((c) => [c.id, context(c.id)]));
@@ -165,18 +165,15 @@ export function buildModel(cis: CI[], rels: Rel[]) {
       checks.sbs.push({ ci: c, ok: !m.length, missing: m });
     } else if (c.ci_class === "system") {
       const m: string[] = [];
-      const comps = kids.filter((k) => k.ci_class === "it_component");
-      if (!comps.length) m.push("IT Component relationship");
-      else if (!comps.some((k) => /database/i.test(k.name) || children(k.id).some((a) => a.ci_class === "database")))
+      const tech = kids.filter(isTech);
+      if (!tech.length) m.push("Technology Layer Asset relationship");
+      else if (!tech.some((k) => k.ci_class === "database" || children(k.id).some((a) => a.ci_class === "database")))
         m.push("Database relationship");
       if (!parents(c.id).some((p) => p.ci_class === "sub_business_service")) m.push("Sub-Business Service relationship");
       checks.sys.push({ ci: c, ok: !m.length, missing: m });
-    } else if (c.ci_class === "it_component") {
-      const ok = kids.some(isTech);
-      checks.comp.push({ ci: c, ok, missing: ok ? [] : ["Technology Asset relationship"] });
     } else if (isTech(c) && !c.device_role) {
-      const ok = parents(c.id).some((p) => p.ci_class === "it_component");
-      checks.asset.push({ ci: c, ok, missing: ok ? [] : ["Related System / IT Component"] });
+      const ok = ctx.get(c.id)!.systems.length > 0;
+      checks.asset.push({ ci: c, ok, missing: ok ? [] : ["Related System"] });
     }
   }
   const rate = (arr: Check[]) => pct(arr.filter((x) => x.ok).length, arr.length);
