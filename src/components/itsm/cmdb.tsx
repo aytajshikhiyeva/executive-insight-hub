@@ -111,7 +111,8 @@ const FILTERS: { key: string; label: string; get: (c: CI, m: Model) => string[] 
   { key: "bs", label: "Business Service", get: (c, m) => m.ctx.get(c.id)!.businessServices },
   { key: "sbs", label: "Sub-Business Service", get: (c, m) => m.ctx.get(c.id)!.subServices },
   { key: "sys", label: "System", get: (c, m) => m.ctx.get(c.id)!.systems },
-  { key: "comp", label: "IT Component", get: (c, m) => m.ctx.get(c.id)!.components },
+  { key: "tcat", label: "Technology Category", get: (c) => [c.asset_category ?? ""] },
+  { key: "ttype", label: "Technology Asset Type", get: (c) => [c.asset_type ?? ""] },
   { key: "crit", label: "Criticality", get: (c) => [c.criticality] },
   { key: "env", label: "Environment", get: (c) => [c.environment ?? ""] },
   { key: "dept", label: "Department", get: (c) => [c.department ?? ""] },
@@ -325,16 +326,16 @@ function Hierarchy({ m, onExplore }: Act) {
     );
   };
   return (
-    <Panel title="Business Service → Sub-Service → System → IT Component → Technology Asset" info="Tree is generated from CMDB 'contains / supports / depends on / runs on / hosted on / uses' relationships.">
+    <Panel title="Business Service → Sub-Service → System → Technology Layer Assets" info="Tree is generated from CMDB 'contains / supports / depends on / runs on / hosted on / uses' relationships.">
       <div className="space-y-2">{bss.map((b) => <Node key={b.id} c={b} depth={0} />)}</div>
     </Panel>
   );
 }
 
 /* ---------------- 5. Dependency graph (SVG, zoom/pan) ---------------- */
-const LAYER_ORDER = ["business_service", "sub_business_service", "system", "it_component", "tech"];
-const layerOf = (c: CI) => (isTech(c) ? 4 : LAYER_ORDER.indexOf(c.ci_class));
-const LAYER_COLOR = ["var(--color-primary)", "var(--color-info)", "var(--color-success)", "var(--color-warning)", "var(--color-muted-foreground)"];
+const LAYER_ORDER = ["business_service", "sub_business_service", "system", "tech"];
+const layerOf = (c: CI) => (isTech(c) ? 3 : LAYER_ORDER.indexOf(c.ci_class));
+const LAYER_COLOR = ["var(--color-primary)", "var(--color-info)", "var(--color-success)", "var(--color-warning)"];
 
 function ZoomPan({ children, width, height, k0 = 0.9 }: { children: ReactNode; width: number; height: number; k0?: number }) {
   const [t, setT] = useState({ x: 40, y: 30, k: k0 });
@@ -435,7 +436,7 @@ function DependencyGraph({ m, onExplore }: Act) {
           <Button size="sm" variant="outline" className="h-8" onClick={() => setCollapsed(new Set(m.cis.filter((c) => c.ci_class === "system").map((c) => c.id)))}>Collapse systems</Button>
         </div>
         <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground mb-2">
-          {["Business Service", "Sub-Business Service", "System", "IT Component", "Technology Asset"].map((l, i) => (
+          {["Business Service", "Sub-Business Service", "System", "Technology Layer Asset"].map((l, i) => (
             <span key={l} className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: LAYER_COLOR[i] }} />{l}</span>
           ))}
         </div>
@@ -507,9 +508,8 @@ function Coverage({ m, onExplore }: Act) {
         <Stat label="Mapping Completeness" value={fmt(mp.completeness)} tone={tone(mp.completeness)} info="Passed relationship checks / all required relationship checks across the hierarchy." />
         <Stat label="BS → Sub-Service" value={fmt(mp.bs)} tone={tone(mp.bs)} info="% of Business Services with at least one Sub-Business Service." />
         <Stat label="Sub-Service → System" value={fmt(mp.sbs)} tone={tone(mp.sbs)} info="% of Sub-Business Services mapped to a System." />
-        <Stat label="System → IT Component" value={fmt(mp.sys)} tone={tone(mp.sys)} info="% of Systems with IT Components including a Database relationship." />
-        <Stat label="Component → Tech Asset" value={fmt(mp.comp)} tone={tone(mp.comp)} info="% of IT Components with at least one technology asset." />
-        <Stat label="Tech Asset → System" value={fmt(mp.asset)} tone={tone(mp.asset)} info="% of application-tier technology assets linked to an IT Component/System." />
+        <Stat label="System → Technology Layer" value={fmt(mp.sys)} tone={tone(mp.sys)} info="% of Systems mapped to Technology Layer Assets, including a Database." />
+        <Stat label="Technology Asset → System" value={fmt(mp.asset)} tone={tone(mp.asset)} info="% of application-tier Technology Layer Assets linked to a System." />
         <Stat label="Critical Assets Fully Mapped" value={fmt(mp.criticalComplete)} tone={tone(mp.criticalComplete)} info="Critical assets that trace up to a Business Service." />
         <Stat label="Orphan CIs" value={mp.orphans.length} tone={mp.orphans.length ? "danger" : "success"} info="CIs with no relationship at all." />
       </div>
@@ -657,7 +657,17 @@ function Explorer({ m, ci, onClose, onAssign }: { m: Model; ci: CI | null; onClo
                   <div><span className="text-muted-foreground">Business Service →</span> {x.businessServices.join(", ") || "—"}</div>
                   <div><span className="text-muted-foreground">Sub-Business Service →</span> {x.subServices.join(", ") || "—"}</div>
                   <div><span className="text-muted-foreground">System →</span> {x.systems.join(", ") || "—"}</div>
-                  <div><span className="text-muted-foreground">IT Component →</span> {x.components.join(", ") || "—"}</div>
+                  <div><span className="text-muted-foreground">Technology Layer →</span> {x.technology.join(", ") || "—"}</div>
+                </div>
+              </Panel>
+              <Panel title="Technology Asset Details" info="Asset data model and capacity metrics (supporting technology resources).">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  {([["Category", live.asset_category], ["Type", live.asset_type], ["Hostname", live.hostname], ["IP", live.ip_address], ["Data Center", live.data_center], ["Vendor", live.vendor], ["Model", live.model], ["Serial", live.serial_number], ["OS", live.operating_system], ["Version", live.version], ["Installed", live.installation_date], ["Lifecycle", live.lifecycle_status], ["Support Team", live.support_team], ["Last Updated", live.updated_at?.slice(0, 10)]] as [string, string | null][]).map(([k, v]) => (
+                    <div key={k}><span className="text-muted-foreground">{k}: </span>{v || "—"}</div>
+                  ))}
+                  {Object.entries((live.capacity ?? {}) as Record<string, number>).map(([k, v]) => (
+                    <div key={k}><span className="text-muted-foreground">{k.replace(/_/g, " ")}: </span>{String(v)}</div>
+                  ))}
                   {live.vlan && <div><span className="text-muted-foreground">Network →</span> {live.vlan}</div>}
                 </div>
               </Panel>

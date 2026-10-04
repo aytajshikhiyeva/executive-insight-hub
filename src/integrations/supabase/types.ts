@@ -16,72 +16,108 @@ export type Database = {
     Tables: {
       cmdb_ci: {
         Row: {
+          asset_category: string | null
+          asset_type: string | null
           business_owner: string | null
+          capacity: Json
           category: string | null
           ci_class: string
           created_at: string
           criticality: string
+          data_center: string | null
           department: string | null
           device_role: string | null
           environment: string | null
           gateway: string | null
+          hostname: string | null
           id: string
+          installation_date: string | null
           ip_address: string | null
+          lifecycle_status: string | null
           location: string | null
           mac_address: string | null
+          model: string | null
           name: string
           network_zone: string | null
+          operating_system: string | null
+          serial_number: string | null
           status: string | null
           subnet: string | null
           support_team: string | null
           technical_owner: string | null
           updated_at: string
+          vendor: string | null
+          version: string | null
           vlan: string | null
         }
         Insert: {
+          asset_category?: string | null
+          asset_type?: string | null
           business_owner?: string | null
+          capacity?: Json
           category?: string | null
           ci_class: string
           created_at?: string
           criticality?: string
+          data_center?: string | null
           department?: string | null
           device_role?: string | null
           environment?: string | null
           gateway?: string | null
+          hostname?: string | null
           id?: string
+          installation_date?: string | null
           ip_address?: string | null
+          lifecycle_status?: string | null
           location?: string | null
           mac_address?: string | null
+          model?: string | null
           name: string
           network_zone?: string | null
+          operating_system?: string | null
+          serial_number?: string | null
           status?: string | null
           subnet?: string | null
           support_team?: string | null
           technical_owner?: string | null
           updated_at?: string
+          vendor?: string | null
+          version?: string | null
           vlan?: string | null
         }
         Update: {
+          asset_category?: string | null
+          asset_type?: string | null
           business_owner?: string | null
+          capacity?: Json
           category?: string | null
           ci_class?: string
           created_at?: string
           criticality?: string
+          data_center?: string | null
           department?: string | null
           device_role?: string | null
           environment?: string | null
           gateway?: string | null
+          hostname?: string | null
           id?: string
+          installation_date?: string | null
           ip_address?: string | null
+          lifecycle_status?: string | null
           location?: string | null
           mac_address?: string | null
+          model?: string | null
           name?: string
           network_zone?: string | null
+          operating_system?: string | null
+          serial_number?: string | null
           status?: string | null
           subnet?: string | null
           support_team?: string | null
           technical_owner?: string | null
           updated_at?: string
+          vendor?: string | null
+          version?: string | null
           vlan?: string | null
         }
         Relationships: []
