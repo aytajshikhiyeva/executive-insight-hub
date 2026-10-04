@@ -1,11 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  Activity, AlertTriangle, Bell, Boxes, Download, FileText, GitPullRequestArrow, LayoutDashboard, ListTree,
-  RefreshCw, Shield, Sparkles, TrendingUp,
-} from "lucide-react";
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,9 +43,6 @@ type TabId = (typeof NAV)[number]["id"];
 
 function DashboardPage() {
   const [tab, setTab] = useState<TabId>("overview");
-  const [range, setRange] = useState("30d");
-  const [service, setService] = useState("all");
-  const [severity, setSeverity] = useState("all");
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
