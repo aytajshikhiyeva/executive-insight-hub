@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  OverviewSection, IncidentSection, ChangeSection, AssetSection, RiskSection,
+  OverviewSection, IncidentSection, ChangeSection, RiskSection,
   PerformanceSection, TrendAnalysisSection, InsightsSection,
 } from "@/components/itsm/sections";
 import { AlertingSection } from "@/components/itsm/alerting";
 import { ReportsSection } from "@/components/itsm/reports";
+import { CmdbSection } from "@/components/itsm/cmdb";
 
 
 export const Route = createFileRoute("/")({
@@ -111,7 +112,7 @@ function DashboardPage() {
             {tab === "overview" && <OverviewSection />}
             {tab === "incidents" && <IncidentSection />}
             {tab === "changes" && <ChangeSection />}
-            {tab === "assets" && <AssetSection />}
+            {tab === "assets" && <CmdbSection />}
             {tab === "risk" && <RiskSection />}
             {tab === "performance" && <PerformanceSection />}
             {tab === "trends" && <TrendAnalysisSection />}
@@ -122,7 +123,7 @@ function DashboardPage() {
           </div>
           <footer className="border-t border-border px-4 lg:px-6 py-3 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
             <span>ITSM Executive Dashboard · demo data · Enterprise Banking</span>
-            <span>Refreshed {new Date().toLocaleTimeString()}</span>
+            <span suppressHydrationWarning>Refreshed {new Date().toLocaleTimeString()}</span>
           </footer>
         </main>
       </div>
